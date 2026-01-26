@@ -21,7 +21,7 @@ inline String nodeStatusToJson(const NodeStatus& status) {
 
     // map database entry (struct) to API fields in Json
     doc["id"] = status.nodeId;
-    doc["mid"] = status.messageId;
+    doc["mId"] = status.messageId;
     doc["batt"] = status.batteryVoltage;
     doc["motion"] = status.motionDetected;
     doc["door"] = status.doorOpen;
