@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <ArduinoJson.h>
+#include <array>
 #include "shared_types.h"
 
 // sensor node
@@ -21,18 +22,25 @@ void loop() {
 #ifdef NODE_TYPE_VIEWER
 
 #define MAX_NODES 10
-NodeStatus networkDatabase[MAX_NODES] = {0};
+
+// standard HTTP port
+WebServer server(80);
+std::array<NodeStatus, MAX_NODES> networkDatabase = {};
 
 // helper function to update database
 void updateDatabase(NodeStatus incoming) {
-    if (incoming.nodeId >= MAX_NODES) {
-        return;
+    if (incoming.nodeId < networkDatabase.size()) {
+        // only update if incoming is newer than what is already there
+        if (incoming.messageId > networkDatabase.at(incoming.nodeId).messageId) {
+            networkDatabase.at(incoming.nodeId) = incoming;
+            Serial.printf("DB: Node %d updated (Msg %d)\n", incoming.nodeId, incoming.messageId);
+        } 
+        else {
+            Serial.printf("DB: Ignored old msg %d from node %d\n", incoming.messageId, incoming.nodeId);
+        }
     }
-
-    // only update if incoming is newer than what is already there
-    if (incoming.messageId > networkDatabase[incoming.nodeId].messageId) {
-        networkDatabase[incoming.nodeId] = incoming;
-        Serial.printf("DB: Node %d updated (Msg %d)\n", incoming.nodeId, incoming.messageId);
+    else {
+        Serial.printf("DB: Rejected node %d (out of bounds)\n", incoming.nodeId);
     }
 }
 
@@ -41,14 +49,14 @@ String getDatabaseAsJson() {
     JsonDocument doc;
     JsonArray root = doc.to<JsonArray>();
 
-    for (int i = 0; i < MAX_NODES, i++) {
-        if (networkDatabase[i].messageId > 0) {
+    for (const auto& node : networkDatabase) {
+        if (node.messageId > 0) {
             JsonObject obj = root.add<JsonObject>();
-            obj["id"] = networkDatabase[i].nodeId;
-            obj["mId"] = networkDatabase[i].messageId;
-            obj["batt"] = networkDatabase[i].batteryVoltage;
-            obj["motion"] = networkDatabase[i].motionDetected;
-            obj["door"] = networkDatabase[i].doorOpen;
+            obj["id"] = node.nodeId;
+            obj["mId"] = node.messageId;
+            obj["batt"] = node.batteryVoltage;
+            obj["motion"] = node.motionDetected;
+            obj["door"] = node.doorOpen;
         }
     }
 
