@@ -16,8 +16,6 @@ void loop() {
 #endif
 
 // ----------------------------------
-//TEMPORARY
-#define NODE_TYPE_VIEWER
 // viewing node
 #ifdef NODE_TYPE_VIEWER
 #include <WiFi.h>
