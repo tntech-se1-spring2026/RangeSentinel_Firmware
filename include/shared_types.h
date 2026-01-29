@@ -13,7 +13,6 @@ struct NodeStatus {
     bool motionDetected;
     bool doorOpen;
     char nodeName[20];
-    bool isActive;
 };
 
 // translate C++ struct to JSON
@@ -26,6 +25,7 @@ inline String nodeStatusToJson(const NodeStatus& status) {
     doc["batt"] = status.batteryVoltage;
     doc["motion"] = status.motionDetected;
     doc["door"] = status.doorOpen;
+    doc["name"] = String(status.nodeName);
 
     String output;
     serializeJson(doc, output);

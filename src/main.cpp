@@ -59,6 +59,7 @@ String getDatabaseAsJson() {
             obj["batt"] = node.batteryVoltage;
             obj["motion"] = node.motionDetected;
             obj["door"] = node.doorOpen;
+            obj["name"] = String(node.nodeName);
         }
     }
 
