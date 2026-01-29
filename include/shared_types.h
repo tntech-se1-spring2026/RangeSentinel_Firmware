@@ -8,11 +8,12 @@
 // subject to change based on what we want
 struct NodeStatus {
     uint32_t nodeId;
-    // to prevent duplicate alerts if both sensors register
-    uint32_t messageId;
+    uint32_t messageId;  // to prevent duplicate alerts if both sensors register
     float batteryVoltage;  // can calculate percentage left
     bool motionDetected;
     bool doorOpen;
+    char nodeName[20];
+    bool isActive;
 };
 
 // translate C++ struct to JSON
