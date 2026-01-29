@@ -7,7 +7,7 @@
 // database schema to hold a node's status
 // subject to change based on what we want
 struct NodeStatus {
-    uint8_t nodeId;  // 0 - 255
+    uint32_t nodeId;
     // to prevent duplicate alerts if both sensors register
     uint32_t messageId;
     float batteryVoltage;  // can calculate percentage left
