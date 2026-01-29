@@ -21,6 +21,7 @@ void loop() {
 #ifdef NODE_TYPE_VIEWER
 #include <WiFi.h>
 #include <WebServer.h>
+#include <LittleFS.h>
 
 #define MAX_NODES 10
 
@@ -69,6 +70,13 @@ String getDatabaseAsJson() {
 void setup() {
     Serial.begin(115200);
 
+    // start LittleFS. Exit if failed
+    if (!LittleFS.begin(true)) {
+        Serial.println("An error occurred while mounting LittleFS");
+        return;
+    }
+    Serial.println("LittleFS mounted successfully");
+
     // start access point
     // (SSID, Password)
     WiFi.softAP("Range-Sentinel-Gateway", "secure-sentinel-2026");
@@ -77,7 +85,12 @@ void setup() {
 
     // home page
     server.on("/", HTTP_GET, []() {
-        server.send(200, "text/html", "<h1>Range Sentinel</h1><p>API is online!!!</p>");
+        File file = LittleFS.open("/index.html", "r");
+        if (!file) {
+            server.send(404, "text/plain", "Web dashboard file not found in LittleFS");
+            return;
+        }
+        server.streamFile(file, "text/html");
     });
 
     // JSON data api
@@ -85,6 +98,7 @@ void setup() {
         server.send(200, "application/json", getDatabaseAsJson());
     });
     server.begin();
+    Serial.println("HTTP server started");
 }
 
 void loop() {
