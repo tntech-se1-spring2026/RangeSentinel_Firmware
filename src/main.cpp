@@ -17,9 +17,11 @@ void loop() {
 #endif
 
 // ----------------------------------
-
 // viewing node
 #ifdef NODE_TYPE_VIEWER
+#include <WiFi.h>
+#include <WebServer.h>
+#include <LittleFS.h>
 
 #define MAX_NODES 10
 
@@ -57,6 +59,7 @@ String getDatabaseAsJson() {
             obj["batt"] = node.batteryVoltage;
             obj["motion"] = node.motionDetected;
             obj["door"] = node.doorOpen;
+            obj["name"] = String(node.nodeName);
         }
     }
 
@@ -66,11 +69,41 @@ String getDatabaseAsJson() {
 }
 
 void setup() {
+    Serial.begin(115200);
 
+    // start LittleFS. Exit if failed
+    if (!LittleFS.begin(true)) {
+        Serial.println("An error occurred while mounting LittleFS");
+        return;
+    }
+    Serial.println("LittleFS mounted successfully");
+
+    // start access point
+    // (SSID, Password)
+    WiFi.softAP("Range-Sentinel-Gateway", "secure-sentinel-2026");
+    Serial.print("Access IP Address: ");
+    Serial.println(WiFi.softAPIP());  // should default to 192.168.4.1
+
+    // home page
+    server.on("/", HTTP_GET, []() {
+        File file = LittleFS.open("/index.html", "r");
+        if (!file) {
+            server.send(404, "text/plain", "Web dashboard file not found in LittleFS");
+            return;
+        }
+        server.streamFile(file, "text/html");
+    });
+
+    // JSON data api
+    server.on("/api/status", HTTP_GET, []() {
+        server.send(200, "application/json", getDatabaseAsJson());
+    });
+    server.begin();
+    Serial.println("HTTP server started");
 }
 
 void loop() {
-
+    server.handleClient();
 }
 
 #endif
