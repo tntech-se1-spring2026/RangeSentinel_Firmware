@@ -2,6 +2,7 @@
 #include <ArduinoJson.h>
 #include <array>
 #include "shared_types.h"
+#include "web_server.h"
 
 // sensor node
 #ifdef NODE_TYPE_SENSOR
@@ -84,22 +85,7 @@ void setup() {
     Serial.print("Access IP Address: ");
     Serial.println(WiFi.softAPIP());  // should default to 192.168.4.1
 
-    // home page
-    server.on("/", HTTP_GET, []() {
-        File file = LittleFS.open("/index.html", "r");
-        if (!file) {
-            server.send(404, "text/plain", "Web dashboard file not found in LittleFS");
-            return;
-        }
-        server.streamFile(file, "text/html");
-    });
-
-    // JSON data api
-    server.on("/api/status", HTTP_GET, []() {
-        server.send(200, "application/json", getDatabaseAsJson());
-    });
-    server.begin();
-    Serial.println("HTTP server started");
+    setupWebServer(getDatabaseAsJson);
 }
 
 void loop() {
