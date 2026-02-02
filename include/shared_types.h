@@ -8,11 +8,11 @@
 // subject to change based on what we want
 struct NodeStatus {
     uint32_t nodeId;
-    // to prevent duplicate alerts if both sensors register
-    uint32_t messageId;
+    uint32_t messageId;  // to prevent duplicate alerts if both sensors register
     float batteryVoltage;  // can calculate percentage left
     bool motionDetected;
     bool doorOpen;
+    char nodeName[20];
 };
 
 // translate C++ struct to JSON
@@ -25,6 +25,7 @@ inline String nodeStatusToJson(const NodeStatus& status) {
     doc["batt"] = status.batteryVoltage;
     doc["motion"] = status.motionDetected;
     doc["door"] = status.doorOpen;
+    doc["name"] = String(status.nodeName);
 
     String output;
     serializeJson(doc, output);
