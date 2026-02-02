@@ -10,7 +10,6 @@ jobs:
       - uses: karniv00l/platformio-run-action@v1
         with:
           environments: "sensor_node,viewing_node"
-          targets: "sensor_node,viewing_node"
           project-conf: "./platformio.ini"
           silent: false
           verbose: true
