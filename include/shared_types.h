@@ -12,7 +12,7 @@ struct NodeStatus {
     float batteryVoltage;  // can calculate percentage left
     bool motionDetected;
     bool doorOpen;
-    char nodeName[20];
+    String nodeName;
 };
 
 // translate C++ struct to JSON
@@ -25,7 +25,7 @@ inline String nodeStatusToJson(const NodeStatus& status) {
     doc["batt"] = status.batteryVoltage;
     doc["motion"] = status.motionDetected;
     doc["door"] = status.doorOpen;
-    doc["name"] = String(status.nodeName);
+    doc["name"] = status.nodeName;
 
     String output;
     serializeJson(doc, output);
