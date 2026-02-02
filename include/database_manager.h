@@ -1,6 +1,18 @@
 #ifndef DATABASE_MANAGER_H
 #define DATABASE_MANAGER_H
 
+/* ************************IMPORTANT NOTE************************
+* Anytime the networkDatabase object is read or written from, you
+* must use the meshMutex to lock and unlock. Else you risk both
+* cores attempting to simultaneously access it.
+* 
+* USAGE EXAMPLE:
+* if (xSemaphoreTake(meshMutex, portMAX_DELAY)) { // LOCK
+* 	// Put database access in place of this line
+*	xSemaphoreGive(meshMutex); // UNLOCK
+* }
+*/
+
 #include <array>
 #include <LittleFS.h>
 #include "shared_types.h"
@@ -12,21 +24,29 @@ extern std::array<NodeStatus, MAX_NODES> networkDatabase;
 // global flag to track if we need to add to persistent memory
 inline bool needsPersistence = false;
 
+// Mutex prevents cores from looking at shared data simultaneously
+SemaphoreHandle_t meshMutex;
+
 // helper function to update database
 inline void updateDatabase(NodeStatus incoming) {
-    if (incoming.nodeId < networkDatabase.size()) {
-        // only update if incoming is newer than what is already there
-        if (incoming.messageId > networkDatabase.at(incoming.nodeId).messageId) {
-            networkDatabase.at(incoming.nodeId) = incoming;
-            needsPersistence = true;   // mark we want to save it eventually
-            Serial.printf("DB: Node %d updated (Msg %d)\n", incoming.nodeId, incoming.messageId);
-        } 
-        else {
-            Serial.printf("DB: Ignored old msg %d from node %d\n", incoming.messageId, incoming.nodeId);
+    // LOCK
+    if (xSemaphoreTake(meshMutex, portMAX_DELAY)) {
+        if (incoming.nodeId < networkDatabase.size()) {
+            // only update if incoming is newer than what is already there
+            if (incoming.messageId > networkDatabase.at(incoming.nodeId).messageId) {
+                networkDatabase.at(incoming.nodeId) = incoming;
+                needsPersistence = true;   // mark we want to save it eventually
+                Serial.printf("DB: Node %d updated (Msg %d)\n", incoming.nodeId, incoming.messageId);
+            } 
+            else {
+                Serial.printf("DB: Ignored old msg %d from node %d\n", incoming.messageId, incoming.nodeId);
+            }
         }
-    }
-    else {
-        Serial.printf("DB: Rejected node %d (out of bounds)\n", incoming.nodeId);
+        else {
+            Serial.printf("DB: Rejected node %d (out of bounds)\n", incoming.nodeId);
+        }
+        // UNLOCK
+        xSemaphoreGive(meshMutex);
     }
 }
 
@@ -35,16 +55,21 @@ inline String getDatabaseAsJson() {
     JsonDocument doc;
     JsonArray root = doc.to<JsonArray>();
 
-    for (const auto& node : networkDatabase) {
-        if (node.messageId > 0) {
-            JsonObject obj = root.add<JsonObject>();
-            obj["id"] = node.nodeId;
-            obj["mId"] = node.messageId;
-            obj["batt"] = node.batteryVoltage;
-            obj["motion"] = node.motionDetected;
-            obj["door"] = node.doorOpen;
-            obj["name"] = String(node.nodeName);
+    // LOCK
+    if (xSemaphoreTake(meshMutex, portMAX_DELAY)) {
+        for (const auto& node : networkDatabase) {
+            if (node.messageId > 0) {
+                JsonObject obj = root.add<JsonObject>();
+                obj["id"] = node.nodeId;
+                obj["mId"] = node.messageId;
+                obj["batt"] = node.batteryVoltage;
+                obj["motion"] = node.motionDetected;
+                obj["door"] = node.doorOpen;
+                obj["name"] = String(node.nodeName);
+            }
         }
+        // UNLOCK
+        xSemaphoreGive(meshMutex);
     }
 
     String output;
@@ -83,12 +108,17 @@ inline void getDatabaseFromFS() {
     for (JsonObject obj : array) {
         uint32_t id = obj["id"];
         if (id < MAX_NODES) {
-            networkDatabase[id].nodeId = id;
-            networkDatabase[id].messageId = obj["mId"];
-            networkDatabase[id].batteryVoltage = obj["batt"];
-            networkDatabase[id].motionDetected = obj["motion"];
-            networkDatabase[id].doorOpen = obj["door"];
-            strlcpy(networkDatabase[id].nodeName, obj["name"], sizeof(networkDatabase[id].nodeName));
+            // LOCK
+            if (xSemaphoreTake(meshMutex, portMAX_DELAY)) {
+                networkDatabase[id].nodeId = id;
+                networkDatabase[id].messageId = obj["mId"].as<uint32_t>();
+                networkDatabase[id].batteryVoltage = obj["batt"].as<long>();
+                networkDatabase[id].motionDetected = obj["motion"].as<bool>();
+                networkDatabase[id].doorOpen = obj["door"].as<bool>();
+                networkDatabase[id].nodeName = obj["name"].as<String>();
+                // UNLOCK
+                xSemaphoreGive(meshMutex);
+            }
         }
     }
     Serial.println("DB: Database restored.");

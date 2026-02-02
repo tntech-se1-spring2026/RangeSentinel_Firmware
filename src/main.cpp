@@ -120,9 +120,6 @@ void loop() {
 WebServer server(80);
 std::array<NodeStatus, MAX_NODES> networkDatabase = {};
 
-// Mutex prevents cores from looking at shared data simultaneously
-SemaphoreHandle_t meshMutex;
-
 void receiverNodeListenFunction(void* pvParameters) {
     while(true){
         uint8_t incoming[RH_MESH_MAX_MESSAGE_LEN];
@@ -185,7 +182,7 @@ void setup() {
     setupRadio();
 
     // start LittleFS. Halt if failed
-    if (!LittleFS.begin(true)) {
+    if (!LittleFS.begin(true)){
         Serial.println("An error occurred while mounting LittleFS");
         while(true);
     }
@@ -198,15 +195,16 @@ void setup() {
     Serial.println(WiFi.softAPIP());  // should default to 192.168.4.1
 
     setupWebServer(getDatabaseAsJson);
-    // This starts the receiverNodeListenFunction stuck to the 0 core
+
+    // run the listen function on core 0
     xTaskCreatePinnedToCore(
-        receiverNodeListenFunction,     /* Function to implement the task */
-        "ReceiverListenTask",           /* Name of the task */
-        10000,                          /* Stack size in words */
-        NULL,                           /* Task input parameter */
-        1,                              /* Priority of the task */
-        0                               /* Core where the task should run */
-        NULL,                           /* Task handle */
+        receiverNodeListenFunction,
+        "ReceiverListenTask",
+        1000,
+        NULL,
+        1,
+        NULL,
+        0
     );
 }
 
