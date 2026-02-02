@@ -4,18 +4,33 @@
 #include <Arduino.h>
 #include <ArduinoJson.h>
 
-// database schema to hold a node
+// database schema to hold a node's status
+// subject to change based on what we want
 struct NodeStatus {
-    // could probably use some more memory-efficient data types if we gave that more thought
-    uint8_t nodeId;  // 0-  255
-    // to prevent duplicate alerts if both sensors register
-    uint32_t messageId; // 0 - (2^32)-1...practically infinite
+    uint32_t nodeId;
+    uint32_t messageId;  // to prevent duplicate alerts if both sensors register
     float batteryVoltage;  // can calculate percentage left
     bool motionDetected;
     bool doorOpen;
+    char nodeName[20];
 };
 
-// would need a funcion to translate struct to JSON
+// translate C++ struct to JSON
+inline String nodeStatusToJson(const NodeStatus& status) {
+    JsonDocument doc;
 
+    // map database entry (struct) to API fields in Json
+    doc["id"] = status.nodeId;
+    doc["mId"] = status.messageId;
+    doc["batt"] = status.batteryVoltage;
+    doc["motion"] = status.motionDetected;
+    doc["door"] = status.doorOpen;
+    doc["name"] = String(status.nodeName);
+
+    String output;
+    serializeJson(doc, output);
+
+    return output;
+}
 
 #endif
