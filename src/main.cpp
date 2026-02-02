@@ -2,6 +2,8 @@
 #include <ArduinoJson.h>
 #include <array>
 #include "shared_types.h"
+#include "web_server.h"
+#include "database_manager.h"
 
 #include <SPI.h> // translator for SX1276 LoRa chip
 #include <RH_RF95.h> // The physical layer driver (SX1276)
@@ -114,62 +116,12 @@ void loop() {
 #include <WebServer.h>
 #include <LittleFS.h>
 
-#define MAX_NODES 10
-
 // standard HTTP port
 WebServer server(80);
 std::array<NodeStatus, MAX_NODES> networkDatabase = {};
 
 // Mutex prevents cores from looking at shared data simultaneously
 SemaphoreHandle_t meshMutex;
-
-// helper function to update database
-void updateDatabase(NodeStatus incoming) {
-    if (incoming.nodeId < networkDatabase.size()) {
-        // only update if incoming is newer than what is already there
-        if (incoming.messageId > networkDatabase.at(incoming.nodeId).messageId) {
-            networkDatabase.at(incoming.nodeId) = incoming;
-            Serial.printf("DB: Node %d updated (Msg %d)\n", incoming.nodeId, incoming.messageId);
-        } 
-        else {
-            Serial.printf("DB: Ignored old msg %d from node %d\n", incoming.messageId, incoming.nodeId);
-        }
-    }
-    else {
-        Serial.printf("DB: Rejected node %d (out of bounds)\n", incoming.nodeId);
-    }
-}
-
-// converts entire active database to JSON array
-String getDatabaseAsJson() {
-    String output = "[]"; // Default empty array
-
-    // Try to take the lock. We wait for the "talking stick" to be available.
-    // This ensures Core 0 isn't currently writing a new packet into the array.
-    if (xSemaphoreTake(meshMutex, portMAX_DELAY)) {
-        JsonDocument doc;
-        JsonArray root = doc.to<JsonArray>();
-
-        for (const auto& node : networkDatabase) {
-            if (node.messageId > 0) {
-                JsonObject obj = root.add<JsonObject>();
-                obj["id"] = node.nodeId;
-                obj["mId"] = node.messageId;
-                obj["batt"] = node.batteryVoltage;
-                obj["motion"] = node.motionDetected;
-                obj["door"] = node.doorOpen;
-                obj["name"] = node.nodeName;
-            }
-        }
-
-        serializeJson(doc, output);
-
-        // ALWAYS give the lock back so the Radio Task can update data again
-        xSemaphoreGive(meshMutex); 
-    }
-    
-    return output;
-}
 
 void receiverNodeListenFunction(void* pvParameters) {
     while(true){
@@ -185,8 +137,8 @@ void receiverNodeListenFunction(void* pvParameters) {
             // LOCK
             if (xSemaphoreTake(meshMutex, portMAX_DELAY)) {
                 JsonDocument incomingDoc;
-                DeserializationError err = deserializeJson(incomingDoc, incoming);
 
+                DeserializationError err = deserializeJson(incomingDoc, incoming);
                 if(err){
                     Serial.print("JSON parse failed: ");
                     Serial.println(err.c_str());
@@ -205,19 +157,19 @@ void receiverNodeListenFunction(void* pvParameters) {
                             // exit loop
                             break;
                         }
-                    }
                     if(!found){ // if our sending node wasn't found in our db
+                    }
                         // add new node logic maybe? need to think this out more
                         Serial.println("Sending node not found in db");
                     }
                 }
-                xSemaphoreGive(meshMutex); // UNLOCK
             }
+                xSemaphoreGive(meshMutex); // UNLOCK
             
             Serial.print("Mesh data synced to Web Server from: ");
             Serial.println(fromAddress);
-        }
 
+        }
         // FEED THE WATCHDOG: This 1ms pause is mandatory on Core 0
         vTaskDelay(1 / portTICK_PERIOD_MS);
     }
@@ -245,28 +197,7 @@ void setup() {
     Serial.print("Access IP Address: ");
     Serial.println(WiFi.softAPIP());  // should default to 192.168.4.1
 
-    // home page
-    server.on("/", HTTP_GET, []() {
-        File file = LittleFS.open("/index.html", "r");
-        if (!file) {
-            server.send(404, "text/plain", "Web dashboard file not found in LittleFS");
-            return;
-        }
-        server.streamFile(file, "text/html");
-    });
-
-    // JSON data api
-    server.on("/api/status", HTTP_GET, []() {
-        // Lock the data while we read it for the web user
-        if (xSemaphoreTake(meshMutex, portMAX_DELAY)) {
-            server.send(200, "application/json", getDatabaseAsJson());
-            xSemaphoreGive(meshMutex); // Unlock
-        }
-    });
-
-    server.begin();
-    Serial.println("HTTP server started");
-
+    setupWebServer(getDatabaseAsJson);
     // This starts the receiverNodeListenFunction stuck to the 0 core
     xTaskCreatePinnedToCore(
         receiverNodeListenFunction,     /* Function to implement the task */
@@ -274,8 +205,8 @@ void setup() {
         10000,                          /* Stack size in words */
         NULL,                           /* Task input parameter */
         1,                              /* Priority of the task */
-        NULL,                           /* Task handle */
         0                               /* Core where the task should run */
+        NULL,                           /* Task handle */
     );
 }
 
