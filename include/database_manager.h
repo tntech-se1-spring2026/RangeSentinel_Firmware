@@ -67,14 +67,12 @@ inline bool saveDatabaseToFS() {
         return false;
     }
 
-    // 2048 bytes should be enough to hold the array of structs
-    // could probably find a dynamic way to do this in a const if we wanted
-    StaticJsonDocument<2048> doc;
+    JsonDocument doc;
     JsonArray root = doc.to<JsonArray>();
 
     for (const auto& node : networkDatabase) {
         if (node.nodeId != 0) {   // only save active nodes
-            JsonObject obj = root.createNestedObject();
+            JsonObject obj = root.add<JsonObject>();
             obj["id"] = node.nodeId;
             obj["mId"] = node.messageId;
             obj["batt"] = node.batteryVoltage;
