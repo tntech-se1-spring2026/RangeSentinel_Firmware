@@ -7,19 +7,12 @@
     <script src="js/bootstrap.bundle.min.js"></script>
     <title>Range Sentinel</title>
     <style>
-        h1 {
-            font-family: Helvetica;
-            color: #fafafa;
+        .card-body {
+            min-height: 140px;
         }
-        .banner {
-            background-color: #ee5c13;
-            width: auto;
-            height: auto;
-        }
-        th {
-            font-family: Helvetica;
-            color: #fafafa;
-            font-size: 24px;
+        .card-value {
+            font-size: 2rem;
+            font-weight: 600;
         }
     </style>
 </head>
@@ -38,30 +31,51 @@
             </div>
         </div>
     </nav>
-    <table style="margin: auto">
-        <tr style="text-align: center;">
-            <th>Object 1</th>
-            <th>Object 2</th>
-            <th>Object 3</th>
-        </tr>
-        <tr>
-            <td><img src="img/placeholder.jpg" alt="teto" width="200" height="200"></td>
-            <td><img src="img/placeholder.jpg" alt="teto" width="200" height="200"></td>
-            <td><img src="img/placeholder.jpg" alt="teto" width="200" height="200"></td>
-        </tr>
-    </table>
-    <table style="margin: auto">
-        <tr style="text-align: center;">
-            <th>Object 1</th>
-            <th>Object 2</th>
-            <th>Object 3</th>
-        </tr>
-        <tr>
-            <td><img src="img/placeholder.jpg" alt="teto" width="200" height="200"></td>
-            <td><img src="img/placeholder.jpg" alt="teto" width="200" height="200"></td>
-            <td><img src="img/placeholder.jpg" alt="teto" width="200" height="200"></td>
-        </tr>
-    </table>
+    <div class="container mt-4">
+    <h1 class="mb-4">ESP32 Status</h1>
+
+    <div class="row g-3">
+
+        <!-- Card 1 -->
+        <div class="col-12 col-md-4">
+            <div class="card shadow-lg">
+                <div class="card-body">
+                    <h5 class="card-title">Temperature</h5>
+                    <p class="card-value">23.5 °C</p>
+                    <p class="card-text text-muted">
+                        Last updated: 10s ago
+                    </p>
+                </div>
+            </div>
+        </div>
+        <!-- Card 2 -->
+        <div class="col-12 col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">Humidity</h5>
+                    <p class="card-value">56 %</p>
+                    <p class="card-text text-muted">
+                        Normal range
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 3 -->
+        <div class="col-12 col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">Device Status</h5>
+                    <p class="card-value text-success">Online</p>
+                    <p class="card-text text-muted">
+                        ESP32 connected
+                    </p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
     <script>
     </script>
 </body>
