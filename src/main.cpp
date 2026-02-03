@@ -39,6 +39,9 @@ void setup() {
     }
     Serial.println("LittleFS mounted successfully");
 
+    // retrieve backup if present
+    getDatabaseFromFS();
+
     // start access point
     // (SSID, Password)
     WiFi.softAP("Range-Sentinel-Gateway", "secure-sentinel-2026");
