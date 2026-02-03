@@ -6,20 +6,34 @@
 #include "shared_types.h"
 
 #define MAX_NODES 10
+#define MAX_LOG_ENTRIES 100
+
 // officially declared in main.cpp
+// live view
 extern std::array<NodeStatus, MAX_NODES> networkDatabase;
+// circular history
+std::array<NodeStatus, MAX_LOG_ENTRIES> eventLog;
+int logHead = 0;
 
 // global flag to track if we need to add to persistent memory
 inline bool needsPersistence = false;
 
 // helper function to update database
 inline void updateDatabase(NodeStatus incoming) {
+    incoming.lastSeen = millis();   // update timestamp
+
     if (incoming.nodeId < networkDatabase.size()) {
         // only update if incoming is newer than what is already there
         if (incoming.messageId > networkDatabase.at(incoming.nodeId).messageId) {
+            // update live view
             networkDatabase.at(incoming.nodeId) = incoming;
-            needsPersistence = true;   // mark we want to save it eventually
-            Serial.printf("DB: Node %d updated (Msg %d)\n", incoming.nodeId, incoming.messageId);
+
+            // add to log
+            eventLog[logHead] = incoming;
+            logHead = (logHead + 1) % MAX_LOG_ENTRIES;   // stop overflow and make it 
+
+            needsPersistence = true;   // mark we want to save it persistently when timer reaches the 5 min mark
+            Serial.printf("DB: Node %d updated & logged (Msg %d)\n", incoming.nodeId, incoming.messageId);
         } 
         else {
             Serial.printf("DB: Ignored old msg %d from node %d\n", incoming.messageId, incoming.nodeId);
@@ -45,6 +59,7 @@ inline String getDatabaseAsJson() {
             obj["motion"] = node.motionDetected;
             obj["door"] = node.doorOpen;
             obj["name"] = String(node.nodeName);
+            obj["ts"] = node.lastSeen;
         }
     }
 
@@ -79,6 +94,7 @@ inline bool saveDatabaseToFS() {
             obj["motion"] = node.motionDetected;
             obj["door"] = node.doorOpen;
             obj["name"] = node.nodeName;
+            obj["ls"] = node.lastSeen;
         }
     }
 
@@ -132,6 +148,7 @@ inline void getDatabaseFromFS() {
             networkDatabase[id].motionDetected = obj["motion"];
             networkDatabase[id].doorOpen = obj["door"];
             strlcpy(networkDatabase[id].nodeName, obj["name"], sizeof(networkDatabase[id].nodeName));
+            networkDatabase[id].lastSeen = obj["ls"];
         }
     }
     Serial.println("DB: Database restored.");

@@ -27,6 +27,7 @@ void loop() {
 
 // standard HTTP port
 WebServer server(80);
+// live view
 std::array<NodeStatus, MAX_NODES> networkDatabase = {};
 
 // periodic updates

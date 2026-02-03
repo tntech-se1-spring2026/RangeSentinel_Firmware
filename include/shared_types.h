@@ -13,6 +13,7 @@ struct NodeStatus {
     bool motionDetected;
     bool doorOpen;
     char nodeName[20];
+    unsigned long lastSeen;
 };
 
 // translate C++ struct to JSON
