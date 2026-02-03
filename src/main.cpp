@@ -29,6 +29,10 @@ void loop() {
 WebServer server(80);
 std::array<NodeStatus, MAX_NODES> networkDatabase = {};
 
+// periodic updates
+unsigned long previousMillis = 0;
+const long interval = 300000;   // 5 minutes in milliseconds (subject to change based on what we might want)
+
 void setup() {
     Serial.begin(115200);
 
@@ -52,6 +56,11 @@ void setup() {
 }
 
 void loop() {
+    unsigned long currentMillis = millis();  // number of ms passed since program started
+    if (currentMillis - previousMillis >= interval) {
+        previousMillis = currentMillis;
+        saveDatabaseToFS();
+    }
     server.handleClient();
 }
 
