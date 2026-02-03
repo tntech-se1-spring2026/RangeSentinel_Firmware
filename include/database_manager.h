@@ -31,6 +31,7 @@ inline void updateDatabase(NodeStatus incoming) {
 }
 
 // converts entire active database to JSON array
+// best used for web api
 inline String getDatabaseAsJson() {
     JsonDocument doc;
     JsonArray root = doc.to<JsonArray>();
@@ -50,6 +51,49 @@ inline String getDatabaseAsJson() {
     String output;
     serializeJson(doc, output);
     return output;
+}
+
+// saves database to LittleFS
+inline bool saveDatabaseToFS() {
+    if (!needsPersistence) {
+        // nothing changed so skip
+        return false;
+    }
+
+    // open file to write
+    File file = LittleFS.open("/db_backup.json", "w");
+    if (!file) {
+        Serial.println("Failed to open DB file for writing.");
+        return false;
+    }
+
+    // 2048 bytes should be enough to hold the array of structs
+    // could probably find a dynamic way to do this in a const if we wanted
+    StaticJsonDocument<2048> doc;
+    JsonArray root = doc.to<JsonArray>();
+
+    for (const auto& node : networkDatabase) {
+        if (node.nodeId != 0) {   // only save active nodes
+            JsonObject obj = root.createNestedObject();
+            obj["id"] = node.nodeId;
+            obj["mId"] = node.messageId;
+            obj["batt"] = node.batteryVoltage;
+            obj["motion"] = node.motionDetected;
+            obj["door"] = node.doorOpen;
+            obj["name"] = node.nodeName;
+        }
+    }
+
+    // serialize JSON to file
+    if (serializeJson(doc, file) == 0) {
+        Serial.println("Failed to write to DB file.");
+        file.close();
+        return false;
+    }
+
+    file.close();
+    needsPersistence = false;
+    Serial.println("Database successfully backed to LittleFS.");
 }
 
 // retrieves data from backup in LittleFS
