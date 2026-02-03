@@ -12,7 +12,7 @@ struct NodeStatus {
     float batteryVoltage;  // can calculate percentage left
     bool motionDetected;
     bool doorOpen;
-    String nodeName;
+    char nodeName[64];
 };
 
 // translate C++ struct to JSON

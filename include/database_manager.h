@@ -65,7 +65,7 @@ inline String getDatabaseAsJson() {
                 obj["batt"] = node.batteryVoltage;
                 obj["motion"] = node.motionDetected;
                 obj["door"] = node.doorOpen;
-                obj["name"] = String(node.nodeName);
+                obj["name"] = node.nodeName;
             }
         }
         // UNLOCK
@@ -115,7 +115,7 @@ inline void getDatabaseFromFS() {
                 networkDatabase[id].batteryVoltage = obj["batt"].as<long>();
                 networkDatabase[id].motionDetected = obj["motion"].as<bool>();
                 networkDatabase[id].doorOpen = obj["door"].as<bool>();
-                networkDatabase[id].nodeName = obj["name"].as<String>();
+                strcpy(networkDatabase[id].nodeName, obj["name"].as<const char*>());
                 // UNLOCK
                 xSemaphoreGive(meshMutex);
             }

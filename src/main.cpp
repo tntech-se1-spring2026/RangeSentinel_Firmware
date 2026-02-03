@@ -18,7 +18,7 @@
 u8_t nodeID = 0; // the ID for this node
 
 RH_RF95 rf95(RFM95_CS, RFM95_INT); // radio driver
-RHMesh manager(rf95, nodeID); // class to manage comm routing.
+RHMesh manager(rf95, nodeID); // class to manage mesh comm routing.
 
 #pragma region SHARED_FUNCTIONS
 void setupRadio(){
@@ -149,7 +149,7 @@ void receiverNodeListenFunction(void* pvParameters) {
                             node.batteryVoltage = incomingDoc["batt"].as<long>();
                             node.motionDetected = incomingDoc["motion"].as<bool>();
                             node.doorOpen = incomingDoc["door"].as<bool>();
-                            node.nodeName = incomingDoc["name"].as<String>();
+                            strcpy(node.nodeName, incomingDoc["name"].as<const char*>());
 
                             // exit loop
                             break;
