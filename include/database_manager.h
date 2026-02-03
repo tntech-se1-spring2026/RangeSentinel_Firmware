@@ -94,6 +94,7 @@ inline bool saveDatabaseToFS() {
     file.close();
     needsPersistence = false;
     Serial.println("Database successfully backed to LittleFS.");
+    return true;
 }
 
 // retrieves data from backup in LittleFS
