@@ -19,10 +19,16 @@ void setupWebServer(String (*getStatusJson)()) {
         server.streamFile(file, "text/html");
     });
 
-    // JSON data api
+    // JSON data api (live status)
     server.on("/api/status", HTTP_GET, [getStatusJson]() {
         server.send(200, "application/json", getStatusJson());
     });
+    
+    // JSON data api (event log)
+    server.on("/api/history", HTTP_GET, []() {
+        server.send(200, "application/json", getEventLogAsJson());
+    });
+
     server.begin();
     Serial.println("HTTP server started");
 }
