@@ -1,5 +1,4 @@
 #include <Arduino.h>
-#include <ArduinoJson.h>
 #include <array>
 #include "shared_types.h"
 #include "web_server.h"

@@ -2,7 +2,6 @@
 #define SHARED_TYPES_H
 
 #include <Arduino.h>
-#include <ArduinoJson.h>
 
 // database schema to hold a node's status
 // subject to change based on what we want
@@ -16,21 +15,6 @@ struct NodeStatus {
 };
 
 // translate C++ struct to JSON
-inline String nodeStatusToJson(const NodeStatus& status) {
-    JsonDocument doc;
-
-    // map database entry (struct) to API fields in Json
-    doc["id"] = status.nodeId;
-    doc["mId"] = status.messageId;
-    doc["batt"] = status.batteryVoltage;
-    doc["motion"] = status.motionDetected;
-    doc["door"] = status.doorOpen;
-    doc["name"] = String(status.nodeName);
-
-    String output;
-    serializeJson(doc, output);
-
-    return output;
-}
+String nodeStatusToJson(const NodeStatus& status);
 
 #endif
