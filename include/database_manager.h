@@ -154,4 +154,31 @@ inline void getDatabaseFromFS() {
     Serial.println("DB: Database restored.");
 }
 
+// converts circular event log to json
+inline String getEventLogAsJson() {
+    JsonDocument doc;
+    JsonArray root = doc.to<JsonArray>();
+
+    // work backward to get most recent activity first
+    for (int i = 0; i < MAX_LOG_ENTRIES; i++) {
+        // handle wrapping around circular buffer and avoid negative indices
+        int index = (logHead - 1 - i + MAX_LOG_ENTRIES) % MAX_LOG_ENTRIES;
+        const NodeStatus& entry = eventLog[index];
+        if (entry.nodeId > 0) {
+            JsonObject obj = root.add<JsonObject>();
+            obj["id"] = entry.nodeId;
+            obj["mId"] = entry.messageId;
+            obj["batt"] = entry.batteryVoltage;
+            obj["motion"] = entry.motionDetected;
+            obj["door"] = entry.doorOpen;
+            obj["name"] = String(entry.nodeName);
+            obj["ts"] = entry.lastSeen;
+        }
+    }
+
+    String output;
+    serializeJson(doc, output);
+    return output;
+}
+
 #endif
