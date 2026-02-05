@@ -6,6 +6,6 @@
 // officially declared in main.cpp
 extern WebServer server;
 
-void setupWebServer(String (*getStatusJson)());
+void setupWebServer(String (*getStatusJson)(), String (*getLogJson)());
 
 #endif

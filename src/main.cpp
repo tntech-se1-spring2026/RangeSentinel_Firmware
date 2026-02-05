@@ -26,7 +26,9 @@ void loop() {
 
 // standard HTTP port
 WebServer server(80);
-std::array<NodeStatus, MAX_NODES> networkDatabase = {};
+
+unsigned long previousMillis = 0;
+const long interval = 300000; // 5 minutes
 
 void setup() {
     Serial.begin(115200);
@@ -38,17 +40,28 @@ void setup() {
     }
     Serial.println("LittleFS mounted successfully");
 
+    getDatabaseFromFS();
+
     // start access point
     // (SSID, Password)
     WiFi.softAP("Range-Sentinel-Gateway", "secure-sentinel-2026");
     Serial.print("Access IP Address: ");
     Serial.println(WiFi.softAPIP());  // should default to 192.168.4.1
 
-    setupWebServer(getDatabaseAsJson);
+    setupWebServer(getDatabaseAsJson, getEventLogAsJson);
 }
 
 void loop() {
     server.handleClient();
+
+    // periodic saving
+    unsigned long currentMillis = millis();
+    if (currentMillis - previousMillis >= interval) {
+        if (needsPersistence) {
+            saveDatabaseToFS();
+            previousMillis = currentMillis;
+        }
+    }
 }
 
 #endif

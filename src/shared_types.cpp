@@ -12,6 +12,7 @@ String nodeStatusToJson(const NodeStatus& status) {
     doc["motion"] = status.motionDetected;
     doc["door"] = status.doorOpen;
     doc["name"] = String(status.nodeName);
+    doc["ts"] = status.lastSeen;
 
     String output;
     serializeJson(doc, output);
