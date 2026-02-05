@@ -43,13 +43,7 @@ String getDatabaseAsJson() {
     for (const auto& node : networkDatabase) {
         if (node.messageId > 0) {
             JsonObject obj = root.add<JsonObject>();
-            obj["id"] = node.nodeId;
-            obj["mId"] = node.messageId;
-            obj["batt"] = node.batteryVoltage;
-            obj["motion"] = node.motionDetected;
-            obj["door"] = node.doorOpen;
-            obj["name"] = String(node.nodeName);
-            obj["ts"] = node.lastSeen;
+            nodeToJsonObject(node, obj);
         }
     }
 
@@ -70,13 +64,7 @@ String getEventLogAsJson() {
         const NodeStatus& entry = eventLog[index];
         if (entry.nodeId > 0) {
             JsonObject obj = root.add<JsonObject>();
-            obj["id"] = entry.nodeId;
-            obj["mId"] = entry.messageId;
-            obj["batt"] = entry.batteryVoltage;
-            obj["motion"] = entry.motionDetected;
-            obj["door"] = entry.doorOpen;
-            obj["name"] = String(entry.nodeName);
-            obj["ts"] = entry.lastSeen;
+            nodeToJsonObject(entry, obj);
         }
     }
 
@@ -101,13 +89,7 @@ bool saveDatabaseToFS() {
         for (const auto& node : networkDatabase) {
             if (node.nodeId > 0) {   // only save active nodes
                 JsonObject obj = root.add<JsonObject>();
-                obj["id"] = node.nodeId;
-                obj["mId"] = node.messageId;
-                obj["batt"] = node.batteryVoltage;
-                obj["motion"] = node.motionDetected;
-                obj["door"] = node.doorOpen;
-                obj["name"] = node.nodeName;
-                obj["ls"] = node.lastSeen;
+                nodeToJsonObject(node, obj);
             }
         }
         if (serializeJson(doc, file) == 0) {
@@ -130,13 +112,7 @@ bool saveDatabaseToFS() {
         for (const auto& entry : eventLog) {
             if (entry.nodeId > 0) {
                 JsonObject obj = logs.add<JsonObject>();
-                obj["id"] = entry.nodeId;
-                obj["mId"] = entry.messageId;
-                obj["batt"] = entry.batteryVoltage;
-                obj["motion"] = entry.motionDetected;
-                obj["door"] = entry.doorOpen;
-                obj["name"] = entry.nodeName;
-                obj["ls"] = entry.lastSeen;
+                nodeToJsonObject(entry, obj);
             }
         }
         if (serializeJson(logDoc, logFile) == 0) {
@@ -167,13 +143,7 @@ void getDatabaseFromFS() {
                 for (JsonObject obj : array) {
                     uint32_t id = obj["id"];
                     if (id < MAX_NODES) {
-                        networkDatabase[id].nodeId = id;
-                        networkDatabase[id].messageId = obj["mId"];
-                        networkDatabase[id].batteryVoltage = obj["batt"];
-                        networkDatabase[id].motionDetected = obj["motion"];
-                        networkDatabase[id].doorOpen = obj["door"];
-                        strlcpy(networkDatabase[id].nodeName, obj["name"], sizeof(networkDatabase[id].nodeName));
-                        networkDatabase[id].lastSeen = obj["ls"];
+                        jsonObjectToNode(obj, networkDatabase[id]);
                     }
                 }
                 Serial.println("DB: Live status restored.");
@@ -198,13 +168,7 @@ void getDatabaseFromFS() {
                 int i = 0;
                 for (JsonObject obj : logs) {
                     if (i < MAX_LOG_ENTRIES) {
-                        eventLog[i].nodeId = obj["id"];
-                        eventLog[i].messageId = obj["mId"];
-                        eventLog[i].batteryVoltage = obj["batt"];
-                        eventLog[i].motionDetected = obj["motion"];
-                        eventLog[i].doorOpen = obj["door"];
-                        eventLog[i].lastSeen = obj["ls"];
-                        strlcpy(eventLog[i].nodeName, obj["name"] | "Unknown", sizeof(eventLog[i].nodeName));
+                        jsonObjectToNode(obj, eventLog[i]);
                         i++;
                     }
                 }

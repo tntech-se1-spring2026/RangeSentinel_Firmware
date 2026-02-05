@@ -2,6 +2,7 @@
 #define SHARED_TYPES_H
 
 #include <Arduino.h>
+#include <ArduinoJson.h>
 
 // database schema to hold a node's status
 // subject to change based on what we want
@@ -15,7 +16,14 @@ struct NodeStatus {
     unsigned long lastSeen;
 };
 
+// pack a struct into an existing JsonObject
+void nodeToJsonObject(const NodeStatus& status, JsonObject& obj);
+
+// unpack a JsonObject into an existing struct
+void jsonObjectToNode(const JsonObjectConst& obj, NodeStatus& status);
+
 // translate C++ struct to JSON
+// single node use
 String nodeStatusToJson(const NodeStatus& status);
 
 #endif
