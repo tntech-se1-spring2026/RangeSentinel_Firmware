@@ -105,6 +105,35 @@ inline bool saveDatabaseToFS() {
         return false;
     }
 
+    File logFile = LittleFS.open("/history_backup.json", "w");
+    if (!logFile) {
+        Serial.println("Failed to open history file for writing");
+        return false;
+    }
+
+    JsonDocument logDoc;
+    logDoc["head"] = logHead;   // save position in circular buffer
+    JsonArray logs = logDoc.add<JsonArray>();
+    for (const auto& entry : eventLog) {
+        if (entry.nodeId > 0) {
+            JsonObject obj = logs.add<JsonObject>();
+            obj["id"] = entry.nodeId;
+            obj["mId"] = entry.messageId;
+            obj["batt"] = entry.batteryVoltage;
+            obj["motion"] = entry.motionDetected;
+            obj["door"] = entry.doorOpen;
+            obj["name"] = entry.nodeName;
+            obj["ls"] = entry.lastSeen;
+        }
+    }
+
+    // serialize JSON to file
+    if (serializeJson(logDoc, logFile) == 0) {
+        Serial.println("Failed to write to log file.");
+        file.close();
+        return false;
+    }
+
     file.close();
     needsPersistence = false;
     Serial.println("Database successfully backed to LittleFS.");
