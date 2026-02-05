@@ -237,4 +237,15 @@ inline String getEventLogAsJson() {
     return output;
 }
 
+// development function to wipe db and logs to start fresh
+// CAN'T THINK OF A USE CASE TO BE IN FINAL PRODUCT
+inline void clearAllData() {
+    LittleFS.remove("/db_backup.json");
+    LittleFS.remove("/history_backup.json");
+    networkDatabase.fill({});
+    eventLog.fill({});
+    logHead = 0;
+    Serial.println("DB: Persistent storage wiped.");
+}
+
 #endif
