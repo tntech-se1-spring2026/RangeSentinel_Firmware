@@ -6,7 +6,7 @@
 #include "shared_types.h"
 
 #define MAX_NODES 10
-#define MAX_LOG_ENTRIES 100
+#define MAX_LOG_ENTRIES 50
 
 // officially declared in main.cpp
 // live view
@@ -75,66 +75,63 @@ inline bool saveDatabaseToFS() {
         return false;
     }
 
-    // open file to write
+    // save current network status
     File file = LittleFS.open("/db_backup.json", "w");
-    if (!file) {
+    if (file) {
+        JsonDocument doc;
+        JsonArray root = doc.to<JsonArray>();
+
+        for (const auto& node : networkDatabase) {
+            if (node.nodeId > 0) {   // only save active nodes
+                JsonObject obj = root.add<JsonObject>();
+                obj["id"] = node.nodeId;
+                obj["mId"] = node.messageId;
+                obj["batt"] = node.batteryVoltage;
+                obj["motion"] = node.motionDetected;
+                obj["door"] = node.doorOpen;
+                obj["name"] = node.nodeName;
+                obj["ls"] = node.lastSeen;
+            }
+        }
+        if (serializeJson(doc, file) == 0) {
+            Serial.println("Failed to write current status to DB file.");
+        }
+        file.close();
+    } 
+    else {
         Serial.println("Failed to open DB file for writing.");
         return false;
     }
 
-    JsonDocument doc;
-    JsonArray root = doc.to<JsonArray>();
-
-    for (const auto& node : networkDatabase) {
-        if (node.nodeId != 0) {   // only save active nodes
-            JsonObject obj = root.add<JsonObject>();
-            obj["id"] = node.nodeId;
-            obj["mId"] = node.messageId;
-            obj["batt"] = node.batteryVoltage;
-            obj["motion"] = node.motionDetected;
-            obj["door"] = node.doorOpen;
-            obj["name"] = node.nodeName;
-            obj["ls"] = node.lastSeen;
-        }
-    }
-
-    // serialize JSON to file
-    if (serializeJson(doc, file) == 0) {
-        Serial.println("Failed to write to DB file.");
-        file.close();
-        return false;
-    }
-
+    // save circular history log
     File logFile = LittleFS.open("/history_backup.json", "w");
-    if (!logFile) {
+    if (logFile) {
+        JsonDocument logDoc;
+        logDoc["head"] = logHead;  // save position in circular buffer
+        JsonArray logs = logDoc["data"].add<JsonArray>();  // add label since we have head as well
+
+        for (const auto& entry : eventLog) {
+            if (entry.nodeId > 0) {
+                JsonObject obj = logs.add<JsonObject>();
+                obj["id"] = entry.nodeId;
+                obj["mId"] = entry.messageId;
+                obj["batt"] = entry.batteryVoltage;
+                obj["motion"] = entry.motionDetected;
+                obj["door"] = entry.doorOpen;
+                obj["name"] = entry.nodeName;
+                obj["ls"] = entry.lastSeen;
+            }
+        }
+        if (serializeJson(logDoc, logFile) == 0) {
+            Serial.println("Failed to write to log file.");
+        }
+        logFile.close();
+    }
+    else {
         Serial.println("Failed to open history file for writing");
         return false;
     }
 
-    JsonDocument logDoc;
-    logDoc["head"] = logHead;   // save position in circular buffer
-    JsonArray logs = logDoc.add<JsonArray>();
-    for (const auto& entry : eventLog) {
-        if (entry.nodeId > 0) {
-            JsonObject obj = logs.add<JsonObject>();
-            obj["id"] = entry.nodeId;
-            obj["mId"] = entry.messageId;
-            obj["batt"] = entry.batteryVoltage;
-            obj["motion"] = entry.motionDetected;
-            obj["door"] = entry.doorOpen;
-            obj["name"] = entry.nodeName;
-            obj["ls"] = entry.lastSeen;
-        }
-    }
-
-    // serialize JSON to file
-    if (serializeJson(logDoc, logFile) == 0) {
-        Serial.println("Failed to write to log file.");
-        file.close();
-        return false;
-    }
-
-    file.close();
     needsPersistence = false;
     Serial.println("Database successfully backed to LittleFS.");
     return true;
