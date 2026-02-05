@@ -66,4 +66,4 @@ Stores the circular buffer history to show an activity feed.
 | `motionDetected` | `motion` | `bool` | Motion trigger status |
 | `doorOpen` | `door` | `bool` | Door status |
 | `nodeName` | `name` | `string` | Name |
-| `lastSeen` | `ts` | `long` | Timestamp in milliseconds (since booted) |
+| `lastSeen` | `ls` | `long` | Timestamp in milliseconds (since booted) |
