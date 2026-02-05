@@ -131,6 +131,10 @@ void loop() {
 // standard HTTP port
 WebServer server(80);
 
+void assignNodeID(uint8_t mac){
+
+}
+
 void receiverNodeListenFunction(void* pvParameters){
     while(true){
         uint8_t incoming[RH_MESH_MAX_MESSAGE_LEN];
@@ -145,20 +149,22 @@ void receiverNodeListenFunction(void* pvParameters){
             // LOCK
             if (xSemaphoreTake(meshMutex, portMAX_DELAY)) {
                 JsonDocument incomingDoc;
-
                 DeserializationError err = deserializeJson(incomingDoc, incoming);
+
                 if(err){
                     Serial.print("JSON parse failed: ");
                     Serial.println(err.c_str());
+                
                 }else{
                     if(fromAddress == 0){ // if this is a new/unassigned node
-
+                        uint8_t incomingMac = incomingDoc["mac"].as<uint8_t>();
+                        assignNodeID(incomingMac);
                     }else{ // not unassigned
                         bool found = false;
                         for(NodeStatus &node : networkDatabase){ // check each node in db to see if matches
                             if(node.nodeId == fromAddress){ // if node matches, update our db
-                                // Double check mac
-                                
+                                // Verify MAC address
+                                if ()
                                     found = true;
                                     // update db
                                     node.messageId = incomingDoc["mId"].as<long>();
