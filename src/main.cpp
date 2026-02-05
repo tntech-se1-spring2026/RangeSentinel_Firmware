@@ -53,7 +53,7 @@ void setup() {
     Serial.print("Access IP Address: ");
     Serial.println(WiFi.softAPIP());  // should default to 192.168.4.1
 
-    setupWebServer(getDatabaseAsJson);
+    setupWebServer(getDatabaseAsJson, getEventLogAsJson);
 }
 
 void loop() {

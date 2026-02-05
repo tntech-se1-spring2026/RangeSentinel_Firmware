@@ -8,7 +8,7 @@
 // officially declared in main.cpp
 extern WebServer server;
 
-void setupWebServer(String (*getStatusJson)()) {
+void setupWebServer(String (*getStatusJson)(), String (*getLogJson)()) {
     // home page
     server.on("/", HTTP_GET, []() {
         File file = LittleFS.open("/index.html", "r");
@@ -25,8 +25,8 @@ void setupWebServer(String (*getStatusJson)()) {
     });
     
     // JSON data api (event log)
-    server.on("/api/history", HTTP_GET, []() {
-        server.send(200, "application/json", getEventLogAsJson());
+    server.on("/api/history", HTTP_GET, [getLogJson]() {
+        server.send(200, "application/json", getLogJson());
     });
 
     server.begin();
