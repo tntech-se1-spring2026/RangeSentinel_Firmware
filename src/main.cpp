@@ -15,13 +15,17 @@
 #define RFM95_INT   0  // Interrupt (DIO0)
 #define RFM95_RST   0  // Reset pin
 
+// zero is the nodeID that all sensor nodes get set to while waiting to be assigned as a node in the mesh from the viewer node
 u8_t nodeID = 0; // the ID for this node
 
 RH_RF95 rf95(RFM95_CS, RFM95_INT); // radio driver
-RHMesh manager(rf95, nodeID); // class to manage mesh comm routing.
+
+RHMesh* manager; // obj to manage mesh comm routing.
 
 #pragma region SHARED_FUNCTIONS
 void setupRadio(){
+    manager = new RHMesh(rf95, nodeID);
+
     // Manual reset of the LoRa radio to ensure a clean state
     Serial.println("Reseting radio");
     pinMode(RFM95_RST, OUTPUT);
@@ -33,7 +37,7 @@ void setupRadio(){
     delay(100);
 
     // Initialize the Mesh Manager & LoRa driver (rf95)
-    if (!manager.init()){
+    if (!manager->init()){
         Serial.println("Mesh init failed! Check wiring.");
         while(true); // Halt if hardware isn't responding
     }
@@ -104,7 +108,15 @@ void loop() {
        The loop() needs to run as fast as possible. If you put a delay() 
        at the end of the loop, our node will be "deaf" during that delay.
     */
-    listenFunction();
+    switch (nodeID){
+        case 0: // if our node is unassigned
+            /* code */
+            manager.setThisAddress(0);
+        break;
+        default: // if our node has been assigned
+            listenFunction();
+        break;
+   }
 }
 
 #endif
@@ -118,16 +130,15 @@ void loop() {
 
 // standard HTTP port
 WebServer server(80);
-std::array<NodeStatus, MAX_NODES> networkDatabase = {};
 
-void receiverNodeListenFunction(void* pvParameters) {
+void receiverNodeListenFunction(void* pvParameters){
     while(true){
         uint8_t incoming[RH_MESH_MAX_MESSAGE_LEN];
         uint8_t len = sizeof(incoming);
         uint8_t fromAddress;
 
         // Listen for mesh traffic
-        if (manager.recvfromAck(incoming, &len, &fromAddress)) {
+        if (manager->recvfromAck(incoming, &len, &fromAddress)) {
             Serial.println("Message received from " + String(fromAddress));
             incoming[len] = '\0';
             
@@ -140,25 +151,31 @@ void receiverNodeListenFunction(void* pvParameters) {
                     Serial.print("JSON parse failed: ");
                     Serial.println(err.c_str());
                 }else{
-                    bool found = false;
-                    for(NodeStatus &node : networkDatabase){ // check each node
-                        if(node.nodeId == fromAddress){ // if node matches, update our db
-                            found = true;
-                            // update db
-                            node.messageId = incomingDoc["mId"].as<long>();
-                            node.batteryVoltage = incomingDoc["batt"].as<long>();
-                            node.motionDetected = incomingDoc["motion"].as<bool>();
-                            node.doorOpen = incomingDoc["door"].as<bool>();
-                            strcpy(node.nodeName, incomingDoc["name"].as<const char*>());
+                    if(fromAddress == 0){ // if this is a new/unassigned node
 
-                            // exit loop
-                            break;
+                    }else{ // not unassigned
+                        bool found = false;
+                        for(NodeStatus &node : networkDatabase){ // check each node in db to see if matches
+                            if(node.nodeId == fromAddress){ // if node matches, update our db
+                                // Double check mac
+                                
+                                    found = true;
+                                    // update db
+                                    node.messageId = incomingDoc["mId"].as<long>();
+                                    node.batteryVoltage = incomingDoc["batt"].as<float>();
+                                    node.motionDetected = incomingDoc["motion"].as<bool>();
+                                    node.doorOpen = incomingDoc["door"].as<bool>();
+                                    strlcpy(node.nodeName, incomingDoc["name"].as<const char*>(), sizeof(node.nodeName));
+                                    // exit loop
+                                    break;
+                            }
                         }
-                    if(!found){ // if our sending node wasn't found in our db
+                        if(!found){ // if our sending node wasn't found in our db
+                            Serial.println("Warning: Unrecognized node (ID:" + (String)fromAddress + ") attempted communication.");
+                        }
+                            
                     }
-                        // add new node logic maybe? need to think this out more
-                        Serial.println("Sending node not found in db");
-                    }
+                    
                 }
             }
                 xSemaphoreGive(meshMutex); // UNLOCK
@@ -179,7 +196,22 @@ void setup() {
     // initialize the mutex to protect db shared btwn cores
     meshMutex = xSemaphoreCreateMutex();
 
+    nodeID = 1; // hardcoded for receiver node
     setupRadio();
+
+    // create the nodeStatus for our receiver
+    NodeStatus receiverStatus = {
+        .nodeId = nodeID,
+        .messageId = 0,
+        //.batteryVoltage = ,
+        .nodeName = "receiver"
+    };
+
+    // set the receiver's mac
+    WiFi.macAddress(receiverStatus.nodeMACAddress);
+
+    // append the receiver status; ignore the return because this is the first append.
+    (void)appendToNetwork(receiverStatus);
 
     // start LittleFS. Halt if failed
     if (!LittleFS.begin(true)){

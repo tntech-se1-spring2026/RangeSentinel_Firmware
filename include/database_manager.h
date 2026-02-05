@@ -17,9 +17,21 @@
 #include <LittleFS.h>
 #include "shared_types.h"
 
-#define MAX_NODES 10
-// officially declared in main.cpp
-extern std::array<NodeStatus, MAX_NODES> networkDatabase;
+#define MAX_NODES 50
+
+std::array<NodeStatus, MAX_NODES> networkDatabase = {};
+size_t numNodesInNetwork = 0;
+
+// function used to add a new node to the database; returns true if it succeeded, else returns false.
+bool appendToNetwork(NodeStatus newStatus){
+    if(numNodesInNetwork < MAX_NODES){
+        networkDatabase[numNodesInNetwork] = newStatus;
+        numNodesInNetwork++;
+        return true;
+    }else{
+        return false;
+    }
+}
 
 // global flag to track if we need to add to persistent memory
 inline bool needsPersistence = false;
@@ -66,6 +78,7 @@ inline String getDatabaseAsJson() {
                 obj["motion"] = node.motionDetected;
                 obj["door"] = node.doorOpen;
                 obj["name"] = node.nodeName;
+                obj["mac"] = node.nodeMACAddress;
             }
         }
         // UNLOCK
@@ -115,7 +128,8 @@ inline void getDatabaseFromFS() {
                 networkDatabase[id].batteryVoltage = obj["batt"].as<long>();
                 networkDatabase[id].motionDetected = obj["motion"].as<bool>();
                 networkDatabase[id].doorOpen = obj["door"].as<bool>();
-                strcpy(networkDatabase[id].nodeName, obj["name"].as<const char*>());
+                strlcpy(networkDatabase[id].nodeName, obj["name"].as<const char*>(), sizeof(networkDatabase[id].nodeName));
+                //networkDatabase[id].nodeMACAddress = obj["mac"].as<uint8_t>();
                 // UNLOCK
                 xSemaphoreGive(meshMutex);
             }
