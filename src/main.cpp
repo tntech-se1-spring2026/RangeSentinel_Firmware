@@ -185,6 +185,7 @@ WebServer server(80);
 // holds the time of the last screen update
 unsigned long lastScreenUpdate = 0;
 
+// TODO: Finish this function
 void assignNewNodeID(const char* macStr){
     uint8_t tempMac[6];
     
@@ -237,7 +238,7 @@ void receiverNodeListenFunction(void* pvParameters){
                         bool found = false;
                         for(NodeStatus &node : networkDatabase){ // check each node in db to see if matches
                             if(node.nodeId == fromAddress){ // if node matches, update our db
-                                // Verify MAC address
+                                // TODO: Verify MAC address
                                 // if(){
                                     found = true;
                                     // update db
