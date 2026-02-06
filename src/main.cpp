@@ -25,7 +25,7 @@ RHMesh* manager; // obj to manage mesh comm routing.
 // --- SCREEN ---
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
-Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RST);
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 #pragma region SHARED_FUNCTIONS
 void setupRadio(){

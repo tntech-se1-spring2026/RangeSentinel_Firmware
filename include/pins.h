@@ -22,7 +22,7 @@
  */
 #define OLED_SDA    21  // Serial Data: The line where display data travels.
 #define OLED_SCL    22  // Serial Clock: The timing signal for the I2C data.
-#define OLED_RST    -1  // Reset: -1 means "None." The screen resets automatically when the ESP32 power cycles.
+#define OLED_RESET  -1  // Reset: -1 means "None." The screen resets automatically when the ESP32 power cycles.
 
 /* * --- SD CARD (SPI Device #2) ---
  * The SD slot shares the SPI highway but has its own "Attention" line.
