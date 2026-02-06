@@ -37,9 +37,8 @@ void setupRadio(){
     digitalWrite(RFM95_RST, HIGH); // Pull high to operate
     delay(10);
 
-    manager = new RHMesh(rf95, nodeID);
-
     // Initialize the Mesh Manager & LoRa driver (rf95)
+    manager = new RHMesh(rf95, nodeID);
     if (!manager->init()){
         Serial.println("Mesh init failed! Check wiring.");
         while(true); // Halt if hardware isn't responding
@@ -53,13 +52,10 @@ void setupRadio(){
     // TX Power: 5 to 23 dBm. 23 is max power. 
     // false = don't use RFO pin, use PA_BOOST (standard for SX1276)
     rf95.setTxPower(5, false);
-    
-    Serial.println("Mesh Node Online. ID: " + String(nodeID));
 }
 
 void setupScreen(){
-    // OLED Pins for V2.1_1.6 are SDA: 21, SCL: 22
-    Wire.begin(21, 22); 
+    Wire.begin(OLED_SDA, OLED_SCL); 
     if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { 
         Serial.println(F("OLED failed to initialize"));
         while(true);
@@ -171,8 +167,7 @@ void loop() {
 
 #endif
 
-// ----------------------------------
-// viewing node
+// --- viewing node ---
 #ifdef NODE_TYPE_VIEWER
 #include <WiFi.h>
 #include <WebServer.h>
@@ -181,29 +176,28 @@ void loop() {
 // standard HTTP port
 WebServer server(80);
 
-// holds the time of the last screen update
+// holds the time of the last screen update; used to check if we need to update screen again
 unsigned long lastScreenUpdate = 0;
 
 // TODO: Finish this function
 void assignNewNodeID(const char* macStr){
-    uint8_t tempMac[6];
-    
     // Convert string "AA:BB..." to raw bytes
+    uint8_t tempMac[6];
     sscanf(macStr, "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx", 
            &tempMac[0], &tempMac[1], &tempMac[2], 
            &tempMac[3], &tempMac[4], &tempMac[5]);
 
-    uint8_t assignedID = 0;
-
-
     // Check if MAC exists in networkDatabase
+    uint8_t assignedID = 0;
     for(NodeStatus &node : networkDatabase){
         if(memcmp(node.nodeMACAddress, tempMac, 6) == 0){
             assignedID = node.nodeId;
             break;
         }
     }
+
     // If not, find next ID and appendToNetwork
+
     // Send response back to Node 0 via manager->sendtoWait
 }
 
@@ -220,10 +214,11 @@ void receiverNodeListenFunction(void* pvParameters){
             
             // LOCK
             if (xSemaphoreTake(meshMutex, portMAX_DELAY)) {
+                // parse incoming json
                 JsonDocument incomingDoc;
                 DeserializationError err = deserializeJson(incomingDoc, incoming);
 
-                if(err){
+                if(err){ // if failed
                     Serial.print("JSON parse failed: ");
                     Serial.println(err.c_str());
                 
@@ -233,12 +228,21 @@ void receiverNodeListenFunction(void* pvParameters){
                         if (strlen(incomingMac) > 0) {
                             assignNewNodeID(incomingMac);
                         }
-                    }else{ // not unassigned
+                    }else{ // already assigned node
                         bool found = false;
                         for(NodeStatus &node : networkDatabase){ // check each node in db to see if matches
                             if(node.nodeId == fromAddress){ // if node matches, update our db
-                                // TODO: Verify MAC address
-                                // if(){
+                                // grab mac as string
+                                const char* incomingMACString = incomingDoc["mac"] | ""; 
+                                
+                                // convert string to raw bytes
+                                uint8_t incomingMACRaw[6];
+                                sscanf(incomingMACString, "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx", 
+                                    &incomingMACRaw[0], &incomingMACRaw[1], &incomingMACRaw[2], 
+                                    &incomingMACRaw[3], &incomingMACRaw[4], &incomingMACRaw[5]);
+
+                                // check if matches
+                                if(memcmp(node.nodeMACAddress, incomingMACRaw, 6) == 0){
                                     found = true;
                                     // update db
                                     node.messageId = incomingDoc["mId"].as<long>();
@@ -248,7 +252,9 @@ void receiverNodeListenFunction(void* pvParameters){
                                     strlcpy(node.nodeName, incomingDoc["name"].as<const char*>(), sizeof(node.nodeName));
                                     // exit loop
                                     break;
-                                // }
+                                }else{
+                                    // TODO: Decide how to handle an incoming message with an existing ID, but without a matching MAC
+                                }
                             }
                         }
                         if(!found){ // if our sending node wasn't found in our db
@@ -258,23 +264,20 @@ void receiverNodeListenFunction(void* pvParameters){
                 }
             }
             xSemaphoreGive(meshMutex); // UNLOCK
-            
-            Serial.print("Mesh data synced to Web Server from: ");
-            Serial.println(fromAddress);
         }
         // FEED THE WATCHDOG: This 1ms pause is mandatory on Core 0
         vTaskDelay(1 / portTICK_PERIOD_MS);
     }
 }
 
-void setup() {
-    // set speed
+void setup(){
     Serial.begin(115200);
 
     // initialize the mutex to protect db shared btwn cores
     meshMutex = xSemaphoreCreateMutex();
 
     nodeID = 1; // hardcoded for receiver node
+    
     setupRadio();
 
     setupScreen();
@@ -285,8 +288,6 @@ void setup() {
     receiverStatus.messageId = 0;
     receiverStatus.batteryVoltage = getBatteryVoltage();
     strlcpy(receiverStatus.nodeName, "receiver", sizeof(receiverStatus.nodeName));
-
-    // set the receiver's mac
     WiFi.macAddress(receiverStatus.nodeMACAddress);
 
     // append the receiver status; ignore the return because this is the first append.
@@ -297,17 +298,15 @@ void setup() {
         Serial.println("An error occurred while mounting LittleFS");
         while(true);
     }
-    Serial.println("LittleFS mounted successfully");
 
     // start access point
-    // (SSID, Password)
-    WiFi.softAP("Range-Sentinel-Gateway", "secure-sentinel-2026");
+    WiFi.softAP("Range-Sentinel-Gateway", "secure-sentinel-2026"); // (SSID, Password)
     Serial.print("Access IP Address: ");
     Serial.println(WiFi.softAPIP());  // should default to 192.168.4.1
 
     setupWebServer(getDatabaseAsJson);
 
-    // run the listen function on core 0
+    // run the listen function exclusively on core 0
     xTaskCreatePinnedToCore(
         receiverNodeListenFunction,
         "ReceiverListenTask",
@@ -320,8 +319,11 @@ void setup() {
 }
 
 void loop() {
+    // handle webserver client
     server.handleClient();
-    if(millis() - lastScreenUpdate > 5000){ // if it has been 5 sec since hte last screen update
+    
+    // update OLED screen
+    if(millis() - lastScreenUpdate > 5000){ // if it has been 5 sec since the last screen update
         updateScreen();
         lastScreenUpdate = millis();
     }

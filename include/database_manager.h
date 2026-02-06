@@ -34,7 +34,7 @@ bool appendToNetwork(NodeStatus newStatus){
 }
 
 // global flag to track if we need to add to persistent memory
-inline bool needsPersistence = false;
+bool needsPersistence = false;
 
 // Mutex prevents cores from looking at shared data simultaneously
 SemaphoreHandle_t meshMutex;
