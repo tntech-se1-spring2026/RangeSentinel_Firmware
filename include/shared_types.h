@@ -12,27 +12,19 @@ struct NodeStatus {
     float batteryVoltage;  // can calculate percentage left
     bool motionDetected;
     bool doorOpen;
-    char nodeName[64];
     uint8_t nodeMACAddress[6];
+    unsigned long lastSeen;
+    char nodeName[64];
 };
 
+// pack a struct into an existing JsonObject
+void nodeToJsonObject(const NodeStatus& status, JsonObject& obj);
+
+// unpack a JsonObject into an existing struct
+void jsonObjectToNode(const JsonObjectConst& obj, NodeStatus& status);
+
 // translate C++ struct to JSON
-inline String nodeStatusToJson(const NodeStatus& status) {
-    JsonDocument doc;
-
-    // map database entry (struct) to API fields in Json
-    doc["id"] = status.nodeId;
-    doc["mId"] = status.messageId;
-    doc["batt"] = status.batteryVoltage;
-    doc["motion"] = status.motionDetected;
-    doc["door"] = status.doorOpen;
-    doc["name"] = status.nodeName;
-    doc["mac"] = status.nodeMACAddress;
-
-    String output;
-    serializeJson(doc, output);
-
-    return output;
-}
+// single node use
+String nodeStatusToJson(const NodeStatus& status);
 
 #endif

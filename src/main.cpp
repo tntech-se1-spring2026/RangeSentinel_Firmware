@@ -1,5 +1,4 @@
 #include <Arduino.h>
-#include <ArduinoJson.h>
 #include <array>
 
 #include "shared_types.h"
@@ -176,6 +175,9 @@ void loop() {
 // standard HTTP port
 WebServer server(80);
 
+unsigned long previousMillis = 0;
+const long interval = 300000; // 5 minutes
+
 // holds the time of the last screen update; used to check if we need to update screen again
 unsigned long lastScreenUpdate = 0;
 
@@ -299,12 +301,14 @@ void setup(){
         while(true);
     }
 
+    getDatabaseFromFS();
+
     // start access point
     WiFi.softAP("Range-Sentinel-Gateway", "secure-sentinel-2026"); // (SSID, Password)
     Serial.print("Access IP Address: ");
     Serial.println(WiFi.softAPIP());  // should default to 192.168.4.1
 
-    setupWebServer(getDatabaseAsJson);
+    setupWebServer(getDatabaseAsJson, getEventLogAsJson);
 
     // run the listen function exclusively on core 0
     xTaskCreatePinnedToCore(
@@ -326,6 +330,15 @@ void loop() {
     if(millis() - lastScreenUpdate > 5000){ // if it has been 5 sec since the last screen update
         updateScreen();
         lastScreenUpdate = millis();
+    }
+
+    // periodic saving
+    unsigned long currentMillis = millis();
+    if (currentMillis - previousMillis >= interval) {
+        if (needsPersistence) {
+            saveDatabaseToFS();
+            previousMillis = currentMillis;
+        }
     }
 }
 
