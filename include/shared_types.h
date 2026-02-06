@@ -13,24 +13,17 @@ struct NodeStatus {
     bool motionDetected;
     bool doorOpen;
     char nodeName[20];
+    unsigned long lastSeen;
 };
 
+// pack a struct into an existing JsonObject
+void nodeToJsonObject(const NodeStatus& status, JsonObject& obj);
+
+// unpack a JsonObject into an existing struct
+void jsonObjectToNode(const JsonObjectConst& obj, NodeStatus& status);
+
 // translate C++ struct to JSON
-inline String nodeStatusToJson(const NodeStatus& status) {
-    JsonDocument doc;
-
-    // map database entry (struct) to API fields in Json
-    doc["id"] = status.nodeId;
-    doc["mId"] = status.messageId;
-    doc["batt"] = status.batteryVoltage;
-    doc["motion"] = status.motionDetected;
-    doc["door"] = status.doorOpen;
-    doc["name"] = String(status.nodeName);
-
-    String output;
-    serializeJson(doc, output);
-
-    return output;
-}
+// single node use
+String nodeStatusToJson(const NodeStatus& status);
 
 #endif
