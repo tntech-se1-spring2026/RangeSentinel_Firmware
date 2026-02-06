@@ -91,7 +91,7 @@ void updateScreen(){
     display.clearDisplay();
     display.setTextSize(1);
     display.setCursor(0, 0);
-    display.println("Range Sentinel Receiver");
+    display.println("Range Sentinel Viewer");
 
     display.setTextSize(2);
     display.setCursor(0, 25);
@@ -276,6 +276,8 @@ void setup() {
 
     nodeID = 1; // hardcoded for receiver node
     setupRadio();
+
+    setupScreen();
 
     // create the nodeStatus for our receiver
     NodeStatus receiverStatus = {};
