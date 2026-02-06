@@ -5,46 +5,29 @@
 #include "shared_types.h"
 
 #define MAX_NODES 10
+#define MAX_LOG_ENTRIES 50
 // officially declared in main.cpp
 extern std::array<NodeStatus, MAX_NODES> networkDatabase;
+extern std::array<NodeStatus, MAX_LOG_ENTRIES> eventLog;
+extern int logHead;
+extern bool needsPersistence;
 
 // helper function to update database
-inline void updateDatabase(NodeStatus incoming) {
-    if (incoming.nodeId < networkDatabase.size()) {
-        // only update if incoming is newer than what is already there
-        if (incoming.messageId > networkDatabase.at(incoming.nodeId).messageId) {
-            networkDatabase.at(incoming.nodeId) = incoming;
-            Serial.printf("DB: Node %d updated (Msg %d)\n", incoming.nodeId, incoming.messageId);
-        } 
-        else {
-            Serial.printf("DB: Ignored old msg %d from node %d\n", incoming.messageId, incoming.nodeId);
-        }
-    }
-    else {
-        Serial.printf("DB: Rejected node %d (out of bounds)\n", incoming.nodeId);
-    }
-}
+void updateDatabase(NodeStatus incoming);
 
 // converts entire active database to JSON array
-inline String getDatabaseAsJson() {
-    JsonDocument doc;
-    JsonArray root = doc.to<JsonArray>();
+String getDatabaseAsJson();
 
-    for (const auto& node : networkDatabase) {
-        if (node.messageId > 0) {
-            JsonObject obj = root.add<JsonObject>();
-            obj["id"] = node.nodeId;
-            obj["mId"] = node.messageId;
-            obj["batt"] = node.batteryVoltage;
-            obj["motion"] = node.motionDetected;
-            obj["door"] = node.doorOpen;
-            obj["name"] = String(node.nodeName);
-        }
-    }
+// converts entire history log to JSON array
+String getEventLogAsJson();
 
-    String output;
-    serializeJson(doc, output);
-    return output;
-}
+// saves database to LittleFS
+bool saveDatabaseToFS();
 
+// get database from LittleFS
+void getDatabaseFromFS();
+
+// development function to wipe db and logs to start fresh
+// CAN'T THINK OF A USE CASE TO BE IN FINAL PRODUCT
+void clearAllData();
 #endif
