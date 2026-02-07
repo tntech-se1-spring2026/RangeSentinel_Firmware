@@ -6,12 +6,10 @@
 RH_RF95 rf95(RFM95_CS, RFM95_INT); // radio driver
 RHMesh* manager; // obj to manage mesh comm routing.
 
-// --- SCREEN ---
-#define SCREEN_WIDTH 128
-#define SCREEN_HEIGHT 64
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 int prevRSState = -1; // Set to -1 so it prints the initial state once
+int brightness = 255;
 
 // TODO: Finish this function
 void assignNewNodeID(const char* macStr){
@@ -68,8 +66,39 @@ void setupScreen(){
         while(true);
     }
 
+    // 0 is darkest, 255 is brightest
+    display.ssd1306_command(SSD1306_SETCONTRAST);
+    display.ssd1306_command(brightness);
+
+    // put starting message
     display.clearDisplay();
     display.setTextColor(SSD1306_WHITE);
+    
+    // --- Starting Message (Redesigned & Centered) ---
+    
+    // Line 1: RANGE SENTINEL (Size 1)
+    // 14 chars * 6px = 84px. (128 - 84) / 2 = 22
+    display.setTextSize(1);
+    display.setCursor(22, 10);
+    display.println(F("RANGE SENTINEL"));
+
+    // Line 2: VIEWER (Size 2)
+    // 6 chars * 12px = 72px. (128 - 72) / 2 = 28
+    display.setTextSize(2);
+    display.setCursor(28, 25);
+    display.println(F("VIEWER"));
+
+    // Decorative Divider (aesthetic touch)
+    display.drawFastHLine(34, 45, 60, SSD1306_WHITE);
+
+    // Line 3: System Booting (Size 1)
+    // 14 chars * 6px = 84px. (128 - 84) / 2 = 22
+    display.setTextSize(1);
+    display.setCursor(22, 52);
+    display.print(F("SYSTEM BOOTING"));
+
+    display.display();
+    
     analogReadResolution(12); // ESP32 ADC is 12-bit (0-4095)
 }
 
@@ -90,19 +119,53 @@ int getBatteryPercentage(){
     return(constrain(percentage, 0, 100));
 }
 
-void updateScreen(){
+void updateScreen() {
     display.clearDisplay();
+    display.setTextColor(SSD1306_WHITE);
+
+    // --- 1. HEADER BAR ---
     display.setTextSize(1);
     display.setCursor(0, 0);
-    display.println("Range Sentinel Viewer");
+    display.print("RANGE SENTINEL");
 
-    display.setTextSize(2);
-    display.setCursor(0, 25);
-    display.printf("%d%%", getBatteryPercentage());
+    // Client Icon + Count (Phones connected to AP)
+    int clientCount = WiFi.softAPgetStationNum();
+    display.drawCircle(115, 2, 2, SSD1306_WHITE); 
+    display.drawRect(112, 5, 7, 2, SSD1306_WHITE); 
+    display.setCursor(121, 0); 
+    display.printf("%d", clientCount);
+
+    display.drawLine(0, 10, 127, 10, SSD1306_WHITE);
+
+    // --- 2. PRIMARY DATA (Centered) ---
+    display.setTextSize(1);
+    display.setCursor(22, 18);
+    display.print("Internal Power");
+
+    int pct = getBatteryPercentage();
+    int xPos = (pct >= 100) ? 28 : (pct < 10) ? 46 : 37; // Handles 1, 2, or 3 digits
+    
+    display.setTextSize(3);
+    display.setCursor(xPos, 30);
+    display.printf("%d%%", pct);
+
+    // --- 3. FOOTER DATA (LoRa Mesh Status) ---
+    display.drawLine(0, 54, 127, 54, SSD1306_WHITE);
+    
+    // Mesh Icon (3 dots connected by lines)
+    display.drawCircle(2, 60, 1, SSD1306_WHITE); // Dot 1
+    display.drawCircle(8, 60, 1, SSD1306_WHITE); // Dot 2
+    display.drawCircle(5, 57, 1, SSD1306_WHITE); // Dot 3
+    display.drawLine(2, 60, 5, 57, SSD1306_WHITE);
+    display.drawLine(8, 60, 5, 57, SSD1306_WHITE);
 
     display.setTextSize(1);
-    display.setCursor(0, 50);
-    display.printf("Voltage: %.2fV", getBatteryVoltage());
+    display.setCursor(14, 57);
+    display.printf("NODES: %u", numNodesInNetwork);
+    
+    // Voltage: Bottom Right
+    display.setCursor(98, 57);
+    display.printf("%.2fV", getBatteryVoltage());
 
     display.display();
 }

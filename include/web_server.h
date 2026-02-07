@@ -6,6 +6,7 @@
 #include <WiFi.h>
 
 extern WebServer server;
+extern String WiFiPassword;
 
 void setupWebServer(String (*getStatusJson)(), String (*getLogJson)());
 

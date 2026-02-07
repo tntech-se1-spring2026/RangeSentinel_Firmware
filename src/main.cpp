@@ -40,7 +40,6 @@ void loop() {
 
 // --- viewing node ---
 #ifdef NODE_TYPE_VIEWER
-#include "web_server.h"
 
 // standard HTTP port
 WebServer server(80);
@@ -49,6 +48,7 @@ unsigned long lastScreenMS      = 0;
 unsigned long lastDBMS          = 0;
 const long fiveMinInterval      = 300000;
 const long fiveSecInterval      = 5000;
+String WiFiPassword             = "password";
 
 // holds the time of the last screen update; used to check if we need to update screen again
 unsigned long lastScreenUpdate = 0;
@@ -56,14 +56,14 @@ unsigned long lastScreenUpdate = 0;
 void setup(){
     Serial.begin(115200);
 
+    setupScreen();
+
     // initialize the mutex to protect db shared btwn cores
     meshMutex = xSemaphoreCreateMutex();
 
     nodeID = 1; // hardcoded for receiver node
     
     setupRadio(nodeID);
-
-    setupScreen();
 
     // create the nodeStatus for our receiver
     NodeStatus receiverStatus = {};
@@ -85,7 +85,7 @@ void setup(){
     getDatabaseFromFS();
 
     // start access point
-    WiFi.softAP("Range-Sentinel-Gateway", "secure-sentinel-2026"); // (SSID, Password)
+    WiFi.softAP("Range-Sentinel-Gateway", WiFiPassword); // (SSID, Password)
     Serial.print("Access IP Address: ");
     Serial.println(WiFi.softAPIP());  // should default to 192.168.4.1
 

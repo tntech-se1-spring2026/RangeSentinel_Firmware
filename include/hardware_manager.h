@@ -2,6 +2,7 @@
 #define HARDWARE_MANAGER_H
 
 #include "pins.h" // has all our physical pins
+#include "web_server.h"
 
 #include <Wire.h> // for low level comm w/screen
 #include <Adafruit_GFX.h> // graphics for screen
@@ -11,8 +12,12 @@
 #include <RH_RF95.h> // The physical layer driver (SX1276)
 #include <RHMesh.h> // The network layer manager (Routing/Mesh)
 
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 64
+
 // --- VARIABLES ---
 extern int prevRSState;
+extern int brightness;
 
 // --- FUNCTIONS ---
 void assignNewNodeID(const char* macStr);

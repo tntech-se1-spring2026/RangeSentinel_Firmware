@@ -20,7 +20,7 @@ bool appendToNetwork(NodeStatus newStatus){
 
 // helper function to update database
 void updateDatabase(NodeStatus incoming){
-     incoming.lastSeen = millis();   // update timestamp
+    incoming.lastSeen = millis();   // update timestamp
 
     if (incoming.nodeId < networkDatabase.size()) {
         // only update if incoming is newer than what is already there
