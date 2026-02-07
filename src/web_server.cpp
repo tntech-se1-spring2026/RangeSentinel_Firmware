@@ -1,5 +1,4 @@
 #include "web_server.h"
-#include <LittleFS.h>
 
 void setupWebServer(String (*getStatusJson)(), String (*getLogJson)()) {
     // home page

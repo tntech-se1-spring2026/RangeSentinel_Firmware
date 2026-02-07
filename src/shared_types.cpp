@@ -1,4 +1,3 @@
-#include <ArduinoJson.h>
 #include "shared_types.h"
 
 // pack a struct into an existing JsonObject

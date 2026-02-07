@@ -1,7 +1,6 @@
 #ifndef SHARED_TYPES_H
 #define SHARED_TYPES_H
 
-#include <Arduino.h>
 #include <ArduinoJson.h>
 
 // database schema to hold a node's status

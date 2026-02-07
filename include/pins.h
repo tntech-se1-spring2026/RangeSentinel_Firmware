@@ -29,4 +29,13 @@
  */
 #define SD_CS       13  // SD Chip Select: Pull this LOW to talk to the SD card. Keep HIGH when talking to LoRa.
 
+/* * --- DOOR SENSOR/REED SWITCH ---
+ * The pins relating to the door reed switch
+ */
+#define RS_PIN      4   // GPIO pin that the switch is attached to; 4 is for the devboard
+
+/* * --- ESP32-CAM CONTROLLER CONNECTIONS (UART) ---
+ * 
+ */
+
 #endif

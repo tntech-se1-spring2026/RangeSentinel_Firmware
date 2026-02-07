@@ -1,16 +1,25 @@
-#include <ArduinoJson.h>
-#include <LittleFS.h>
 #include "database_manager.h"
 
-// live view
-std::array<NodeStatus, MAX_NODES> networkDatabase = {};
-// circular buffer history 
-std::array<NodeStatus, MAX_LOG_ENTRIES> eventLog = {};
-int logHead = 0;
-bool needsPersistence = false;
+std::array<NodeStatus, MAX_NODES> networkDatabase   = {}; // live view
+std::array<NodeStatus, MAX_LOG_ENTRIES> eventLog    = {}; // circular buffer history 
+int logHead                                         = 0;
+bool needsPersistence                               = false;
+size_t numNodesInNetwork                            = 0;
+SemaphoreHandle_t meshMutex                         = NULL;
+
+// function used to add a new node to the database; returns true if it succeeded, else returns false.
+bool appendToNetwork(NodeStatus newStatus){
+    if(numNodesInNetwork < MAX_NODES){
+        networkDatabase[numNodesInNetwork] = newStatus;
+        numNodesInNetwork++;
+        return true;
+    }else{
+        return false;
+    }
+}
 
 // helper function to update database
-void updateDatabase(NodeStatus incoming) {
+void updateDatabase(NodeStatus incoming){
      incoming.lastSeen = millis();   // update timestamp
 
     if (incoming.nodeId < networkDatabase.size()) {
