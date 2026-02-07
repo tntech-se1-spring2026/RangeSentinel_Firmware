@@ -3,7 +3,7 @@
 void setupWebServer(String (*getStatusJson)(), String (*getLogJson)()) {
     // home page
     server.on("/", HTTP_GET, []() {
-        File file = LittleFS.open("/index.html", "r");
+        File file = LittleFS.open("/www/index.html", "r");
         if (!file) {
             server.send(404, "text/plain", "Web dashboard file not found in LittleFS");
             return;
