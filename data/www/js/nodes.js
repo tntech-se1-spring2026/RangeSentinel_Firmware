@@ -11,14 +11,22 @@ function card_creator(id, statas){
             <div class="card-body">
                 <h5 class="card-title">${id}</h5>
                 <p class="card-value text-success">${statas}</p>
-                <p class="card-text text-muted">    
-                </p>
+                <p class="card-text text-muted"></p>
             </div>
         </div>
     </div>`;
 
 }
-document.querySelector('#test-button').addEventListener("click",async () =>
+let count = 1;
+const cardRow = document.getElementById("cardRow");
+document.querySelector('#test-button').addEventListener("click",async () => {
+    cardRow.insertAdjacentHTML(
+        "beforeend",
+        card_creator(`Node ${count}`,"Online")
+    )
+    count++;
+});
+/*document.querySelector('#test-button').addEventListener("click",async () =>
 {
     const nodes_data_promise = await query.get_nodes();
     const node_data = await nodes_data_promise.json();
@@ -29,7 +37,7 @@ document.querySelector('#test-button').addEventListener("click",async () =>
         let card = card_creator(id,statas);
         document.querySelector('#nodes-container').innerHTML += card;
     }   
-});
+});*/
 
 
 

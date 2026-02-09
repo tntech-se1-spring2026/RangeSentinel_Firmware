@@ -4,7 +4,7 @@
 // This file contains logic that handles
 // HTTP queries.
 
-const HOST_ADDRESS = "range-sentinel.com";
+const HOST_ADDRESS = "localhost";
 const HOST_PORT = "3000";
 
 // Generic function to query GET
