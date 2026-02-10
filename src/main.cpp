@@ -21,11 +21,11 @@ void loop() {
 // viewing node
 #ifdef NODE_TYPE_VIEWER
 #include <WiFi.h>
-#include <WebServer.h>
+// #include <WebServer.h>
 #include <LittleFS.h>
 
 // standard HTTP port
-WebServer server(80);
+// WebServer server(80);
 
 unsigned long previousMillis = 0;
 const long interval = 300000; // 5 minutes
@@ -48,11 +48,12 @@ void setup() {
     Serial.print("Access IP Address: ");
     Serial.println(WiFi.softAPIP());  // should default to 192.168.4.1
 
-    setupWebServer(getDatabaseAsJson, getEventLogAsJson);
+    // setupWebServer(getDatabaseAsJson, getEventLogAsJson);
+    startWebServer();
 }
 
 void loop() {
-    server.handleClient();
+    // server.handleClient();
 
     // periodic saving
     unsigned long currentMillis = millis();
