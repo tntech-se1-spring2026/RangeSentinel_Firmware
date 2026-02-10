@@ -53,6 +53,6 @@ bool deserializePacket(const uint8_t* buffer, size_t len, MeshPacket& packet);
 void nodeRecordToJsonObject(const NodeRecord& record, JsonObject& obj);
 
 // fill existingrecord from a JsonObject (aka, backup)
-void jsonObjexctToNodeRecord(const JsonObjectConst& obj, NodeRecord& record);
+void jsonObjectToNodeRecord(const JsonObjectConst& obj, NodeRecord& record);
 
 #endif
