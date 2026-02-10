@@ -122,7 +122,7 @@ void nodeRecordToJsonObject(const NodeRecord& record, JsonObject& obj) {
 }
 
 // fill JSON backup into record
-void jsonObjexctToNodeRecord(const JsonObjectConst& obj, NodeRecord& record) {
+void jsonObjectToNodeRecord(const JsonObjectConst& obj, NodeRecord& record) {
     // restore meta data
     record.lastPacket.nodeId = obj["id"];
     record.lastSeen = obj["ls"];
