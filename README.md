@@ -11,6 +11,14 @@ The system uses a **Tagged Union** pattern to separate what is sent over LoRa an
 Tailored for LoRa. Contains only the essential sensor data.
 
 ```cpp
+typedef enum {
+    SENSOR_TYPE_NONE = 0x00,
+    SENSOR_TYPE_DOOR = 0x01,
+    SENSOR_TYPE_MOTION = 0x02,
+    SENSOR_TYPE_BATTERY = 0x03,
+    SENSOR_TYPE_ERROR = 0xFF
+} SensorType;
+
 typedef union {
     bool asBool;        // For Door/Motion
     float asFloat;      // For Battery
