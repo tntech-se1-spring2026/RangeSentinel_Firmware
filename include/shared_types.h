@@ -55,26 +55,4 @@ void nodeRecordToJsonObject(const NodeRecord& record, JsonObject& obj);
 // fill existingrecord from a JsonObject (aka, backup)
 void jsonObjexctToNodeRecord(const JsonObjectConst& obj, NodeRecord& record);
 
-// // database schema to hold a node's status
-// // subject to change based on what we want
-// struct NodeStatus {
-//     uint32_t nodeId;
-//     uint32_t messageId;  // to prevent duplicate alerts if both sensors register
-//     float batteryVoltage;  // can calculate percentage left
-//     bool motionDetected;
-//     bool doorOpen;
-//     char nodeName[20];
-//     unsigned long lastSeen;
-// };
-
-// // pack a struct into an existing JsonObject
-// void nodeToJsonObject(const NodeStatus& status, JsonObject& obj);
-
-// // unpack a JsonObject into an existing struct
-// void jsonObjectToNode(const JsonObjectConst& obj, NodeStatus& status);
-
-// // translate C++ struct to JSON
-// // single node use
-// String nodeStatusToJson(const NodeStatus& status);
-
 #endif
