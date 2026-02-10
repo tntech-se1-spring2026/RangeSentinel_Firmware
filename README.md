@@ -5,17 +5,39 @@ Data is stored in JSON format to be human readable, easily accessible via the we
 
 ### 1. Core Data Structure
 
-All sensor data is based on the `NodeStatus` C++ struct.
+The system uses a **Tagged Union** pattern to separate what is sent over LoRa and what is on-device storage.
+
+**A. MeshPacket**
+Tailored for LoRa. Contains only the essential sensor data.
 
 ```cpp
-struct NodeStatus {
-    uint32_t nodeId;         // Unique identifier for the sensor (1-MAX_NODES)
-    uint32_t messageId;      // Incremental number to prevent duplicates
-    float batteryVoltage;
-    bool motionDetected;
-    bool doorOpen;
-    char nodeName[20];
-    unsigned long lastSeen;  // Relative timestamp (millis) of last contact
+typedef union {
+    bool asBool;        // For Door/Motion
+    float asFloat;      // For Battery
+    uint8_t asByte;     // For Error Codes
+} SensorData;
+
+struct SensorReading {
+    uint8_t sensorIndex; // Which sensor is this?
+    SensorType type;     // What format is the data? (Door, Battery, etc.)
+    SensorData payload;  // The actual data
+};
+
+struct MeshPacket {
+    uint8_t nodeId;
+    uint32_t messageId;
+    uint8_t readingCount; 
+    SensorReading readings[MAX_SENSORS_PER_PACKET];
+};
+```
+
+**B. NodeRecord** Wraps the packet with metadata that is _not_ sent over radio to save bandwidth.
+
+```cpp
+struct NodeRecord {
+    MeshPacket lastPacket;
+    char nodeName[20];       // e.g., "Front Gate"
+    unsigned long lastSeen;  // Local timestamp (millis)
 };
 ```
 
@@ -28,15 +50,16 @@ Stores the most recent state of each active node.
 
 ```json
 [
-{
+  {
     "id": 1,
     "mId": 42,
-    "batt": 3.95,
-    "motion": false,
-    "door": true,
     "name": "Front Gate",
-    "ls": 154200
-}
+    "ls": 154200,
+    "sensors": [
+      { "idx": 0, "type": "door", "val": true },
+      { "idx": 1, "type": "batt", "val": 3.95 }
+    ]
+  }
 ]
 ```
 
@@ -50,20 +73,45 @@ Stores the circular buffer history to show an activity feed.
 {
     "head": 3,
     "data": [
-        { "id": 1, "mId": 40, "batt": 3.96, "motion": true, "door": false, "name": "Front Gate", "ls": 150000 },
-        { "id": 2, "mId": 12, "batt": 4.10, "motion": false, "door": true, "name": "Back Porch", "ls": 152000 }
+        { 
+            "id": 1, 
+            "mId": 40, 
+            "name": "Front Gate", 
+            "ls": 150000,
+            "sensors": [
+                { "idx": 0, "type": "motion", "val": true }
+            ]
+        },
+        { 
+            "id": 2, 
+            "mId": 12, 
+            "name": "Back Porch", 
+            "ls": 152000,
+            "sensors": [
+                { "idx": 0, "type": "door", "val": true },
+                { "idx": 1, "type": "batt", "val": 4.10 }
+            ]
+        }
     ]
 }
 ```
 
 ### 3. Table for Translation from C++ variable to JSON key:
 
+**Meta-Data Fields**
 | C++ Variable | JSON Key | Type | Description |
 | :--- | :--- | :--- | :--- |
-| `nodeId` | `id` | `int` | Unique Node ID |
-| `messageId` | `mId` | `int` | Message number |
-| `batteryVoltage` | `batt` | `float` | Voltage |
-| `motionDetected` | `motion` | `bool` | Motion trigger status |
-| `doorOpen` | `door` | `bool` | Door status |
-| `nodeName` | `name` | `string` | Name |
-| `lastSeen` | `ls` | `long` | Timestamp in milliseconds (since booted) |
+| nodeId | id | int | Unique Node ID | 
+| messageId | mId | int | Message number | 
+| nodeName | name | string | Name (Stored locally) |
+| lastSeen | ls | long | Timestamp since booted in milliseconds |
+| readings[] | sensors | array | List of sensor objects |
+
+---
+
+**Sensor Fields**
+| C++ Variable | JSON Key | Type | Description | 
+| :--- | :--- | :--- | :--- | 
+| sensorIndex | idx | int | Which sensor on the board | 
+| type | type | string | Enum converted to string ("door", "batt", "motion", "temp", "err") | 
+| payload | val | mixed | value (bool, float, or int depending on type) |
