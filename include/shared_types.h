@@ -45,7 +45,15 @@ struct NodeRecord {
     unsigned long lastSeen;  // local timestamp
 };
 
+// packet to and from bytes
+size_t serializePacket(const MeshPacket& packet, uint8_t* buffer, size_t maxLen);
+bool deserializePacket(const uint8_t* buffer, size_t len, MeshPacket& packet);
 
+// fill existing JsonObject with record data
+void nodeRecordToJsonObject(const NodeRecord& record, JsonObject& obj);
+
+// fill existingrecord from a JsonObject (aka, backup)
+void jsonObjexctToNodeRecord(const JsonObjectConst& obj, NodeRecord& record);
 
 // // database schema to hold a node's status
 // // subject to change based on what we want
