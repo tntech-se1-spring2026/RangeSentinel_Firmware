@@ -9,32 +9,21 @@ unsigned long currentMS         = 0;
 unsigned long lastRSMS          = 0;
 const long fiftyMSInterval      = 50;
 void setup() {
-    setupRadio();
-    // TODO: Add logic to decide what kind of sensor node
     pinMode(RS_PIN, INPUT_PULLUP); // set the reed switch's pin's mode
+    Serial.begin(115200);
+
+    if (!rf95.init()) Serial.println("LoRa radio init failed");
+    rf95.setFrequency(915.0); // Match your region
+    rf95.setTxPower(23, false);
 }
 
 void loop() {
-    /*
-       IMPORTANT NOTE REGARDING COMMS:
-       The loop() needs to run as fast as possible. If you put a delay() 
-       at the end of the loop, our node will be "deaf" during that delay.
-    */
-    currentMillis = millis();
-    // TODO: create sensor node logic
-    switch (nodeID){
-        case 0: // if our node is unassigned
-            /* code */
-            manager.setThisAddress(0);
-        break;
-        default: // if our node has been assigned
-            listenFunction();
-            // delay prevents bouncing
-            if(currentMS - lastRSMS > fiftyMSInterval){
-                reedSwitchLogic();
-            }
-        break;
-   }
+    currentMS = millis();
+    
+    //sensorListen();
+    if(currentMS - lastRSMS > fiftyMSInterval){
+        reedSwitchLogic();
+    }
 }
 #endif
 
@@ -61,9 +50,9 @@ void setup(){
     // initialize the mutex to protect db shared btwn cores
     meshMutex = xSemaphoreCreateMutex();
 
-    nodeID = 1; // hardcoded for receiver node
-    
-    setupRadio(nodeID);
+    // setup radio
+    if (!rf95.init()) Serial.println("LoRa init failed");
+    rf95.setFrequency(915.0);
 
     // create the nodeStatus for our receiver
     NodeStatus receiverStatus = {};

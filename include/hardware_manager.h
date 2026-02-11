@@ -18,6 +18,9 @@
 // --- VARIABLES ---
 extern int prevRSState;
 extern int brightness;
+RH_RF95 rf95;
+RHMesh* manager;
+Adafruit_SSD1306 display;
 
 // --- FUNCTIONS ---
 void assignNewNodeID(const char* macStr);

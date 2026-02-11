@@ -11,6 +11,10 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 int prevRSState = -1; // Set to -1 so it prints the initial state once
 int brightness = 255;
 
+RH_RF95 getRadio(){
+    return rf95;
+}
+
 // TODO: Finish this function
 void assignNewNodeID(const char* macStr){
     // Convert string "AA:BB..." to raw bytes
@@ -281,19 +285,18 @@ void sensorListen(){ // Must be called constantly to process incoming packets
 }
 
 void reedSwitchLogic(){
-    int currentRSState = digitalRead(RS_PIN);
+    int currentState = digitalRead(RS_PIN);
 
     // Only do something if the state changed
-    if (currentRSState != prevRSState) {
-        if (currentRSState != LOW) {
-            // Magnet is NEAR (Completes the circuit to GND)
-            Serial.println("Status: DOOR CLOSED");
-        } else{
-            // Magnet is GONE (Internal pull-up makes it HIGH)
-            Serial.println("Status: DOOR OPEN!");
-        }
+    if (currentState != prevRSState) {
+        uint8_t data[1] = {(uint8_t)currentState};
+        rf95.send(data, sizeof(data));
+        rf95.waitPacketSent();
+    
+        Serial.print("State changed! New state: ");
+        Serial.println(currentState == HIGH ? "OPEN" : "CLOSED");
 
         // Update the memory
-        prevRSState = currentRSState;
+        prevRSState = currentState;
     }
 }
