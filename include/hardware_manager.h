@@ -18,9 +18,9 @@
 // --- VARIABLES ---
 extern int prevRSState;
 extern int brightness;
-RH_RF95 rf95;
-RHMesh* manager;
-Adafruit_SSD1306 display;
+extern RH_RF95 rf95;
+// RHMesh* manager;
+extern Adafruit_SSD1306 display;
 
 // --- FUNCTIONS ---
 void assignNewNodeID(const char* macStr);
@@ -32,5 +32,6 @@ void updateScreen();
 void receiverListen(void* pvParameters);
 void sensorListen();
 void reedSwitchLogic();
+void updateLocalDisplay(bool doorOpen, float voltage);
 
 #endif

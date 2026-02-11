@@ -11,7 +11,7 @@ struct NodeStatus {
     float batteryVoltage;  // can calculate percentage left
     bool motionDetected;
     bool doorOpen;
-    uint8_t nodeMACAddress[6];
+    String nodeMACAddress;
     unsigned long lastSeen;
     char nodeName[64];
 };
