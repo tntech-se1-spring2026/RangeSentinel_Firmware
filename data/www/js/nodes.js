@@ -1,78 +1,63 @@
 import * as query from "/modules/query.js";
-//template 
-
-const test_template = `
-    <p> Hello World </p>
-`
-function card_creator(id, statas){
-    return    `
-    <div class="col-12 col-md-4">
-        <div class="card text-center shadow-sm">
-            <div class="card-body">
-                <h5 class="card-title">${id}</h5>
-                <p class="card-value text-success">${statas}</p>
-                <p class="card-text text-muted"></p>
-            </div>
-        </div>
-    </div>`;
-
-}
-let count = 1;
-const cardRow = document.getElementById("cardRow");
-document.querySelector('#test-button').addEventListener("click",async () => {
+//Manual card creator for testing purposes
+let count = 1; //Card number
+const cardRow = document.getElementById("cardRow"); // Get the card row container
+document.querySelector('#test-button').addEventListener("click",async () => { //Listen for button click to add card
     cardRow.insertAdjacentHTML(
         "beforeend",
-        card_creator(`Node ${count}`,"Online")
+        card_creator(`Node ${count}`, "Name", 5000)
     )
     count++;
 });
-/*document.querySelector('#test-button').addEventListener("click",async () =>
-{
-    const nodes_data_promise = await query.get_nodes();
-    const node_data = await nodes_data_promise.json();
-    for (const iter in node_data["nodes"]){
-        console.log(node_data["nodes"][iter]);
-        let id = node_data["nodes"][iter]["id"];
-        let statas = check_time(parseInt(node_data["nodes"][iter]["last_seen"]));
-        let card = card_creator(id,statas);
-        document.querySelector('#nodes-container').innerHTML += card;
-    }   
-});*/
-
-
-
-
-
-/*
-For each (node in node_list){
-    id_name = node.id
-    statas =node.status
-}
-*/
-//Fetch data
-
-const nodes_data_promise = await query.get_nodes();
-
-const node_data = await nodes_data_promise.json();
-console.log(node_data);
-for (const iter in node_data["nodes"]){
-    console.log(node_data["nodes"][iter]);
-    let id_name =node_data["nodes"][iter]["id"];
-    let statas = node_data["nodes"][iter]["status"];
-    let time_frame = check_time(node_data["nodes"][iter]["last_seen"]);
-}
-
-//Interpret data
-function check_time(last_seen){//last_seen integer
-    const present_time = Date.now();
-    const remain_time = present_time - last_seen;
-    if (remain_time >= 1800000){ // Greater than 30 minutes
-        return "Offline";
+function card_creator(id, name, lastSeen){ //Template for card creation
+    if (lastSeen >= 10000){ //If not seen for more than 10 mins, mark as offline
+        return    `
+            <div class="col-12 col-md-4">
+                <div class="card text-center shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title">${name}</h5>
+                        <h3 class="card-title">${id}</h3>
+                        <p class="card-value text-danger">Offline</p>
+                        <p class="card-text text-muted">${lastSeen}</p>
+                    </div>
+                </div>
+            </div>`;
     }
-    else{
-        return "Online";
+    else{ //Otherwise, mark as online
+        return    `
+            <div class="col-12 col-md-4">
+                <div class="card text-center shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title">${name}</h5>
+                        <h3 class="card-title">${id}</h3>
+                        <p class="card-value text-success">Online</p>
+                        <p class="card-text text-muted">${lastSeen}</p>
+                    </div>
+                </div>
+            </div>`;
     }
+}
+//Automatically load cards on page load from data in the backend
+document.addEventListener("DOMContentLoaded", nodeCall);
+function nodeCall(){
+    const container = document.getElementById("cardRow");
+
+    fetch("http://localhost:3000/web/nodes-load") //Grabs data from backend
+        .then(response => {
+            if (!response.ok) { //Checks if response is valid
+                throw new Error("Network error");
+            }
+            return response.json();
+        })
+        .then(data => {
+            data.forEach(node => { //Parses data and creates cards for each node
+                container.insertAdjacentHTML(
+                    "beforeend",
+                    card_creator(node.id, node.name, node.ls)
+                );
+            });
+        })
+        .catch(error => {
+            console.error("Error:", error);
+        });
 };
-//Creating node cards
-
-//

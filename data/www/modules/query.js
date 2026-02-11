@@ -26,7 +26,7 @@ export async function ping_backend() {
 }
 
 export async function get_nodes() {
-  return await http_get(`http://${HOST_ADDRESS}:${HOST_PORT}/web/nodes`);
+  return await http_get(`http://${HOST_ADDRESS}:${HOST_PORT}/web/nodes-load`);
 }
 
 export async function get_node_by_id(nodeid) {
