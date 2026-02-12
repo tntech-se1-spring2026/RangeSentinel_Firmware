@@ -4,8 +4,8 @@
 // This file contains logic that handles
 // HTTP queries.
 
-const HOST_ADDRESS = "live.range-sentinel.com";
-const HOST_PORT = "80";
+const HOST_ADDRESS = "range-sentinel.com";
+const HOST_PORT = "3000";
 
 // Generic function to query GET
 async function http_get(uri) {
@@ -26,7 +26,7 @@ export async function ping_backend() {
 }
 
 export async function get_nodes() {
-  return await http_get(`http://${HOST_ADDRESS}:${HOST_PORT}/web/nodes-load`);
+  return await http_get(`http://${HOST_ADDRESS}:${HOST_PORT}/web/nodes`);
 }
 
 export async function get_node_by_id(nodeid) {

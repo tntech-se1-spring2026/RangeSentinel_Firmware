@@ -33,52 +33,21 @@
     </nav>
 
     <div class="container mt-4">
-    <h1 style="color: #fafafa; font-family: helvetica;">Status</h1>
+    <h1 style="color: #fafafa; font-family: helvetica;">Device Status</h1>
 
-    <div class="row g-3"> <!-- First Row of 3 Cards -->
-        <!-- Card 1 -->
-        <div class="col-12 col-md-4">
-            <div class="card text-center shadow-sm">
-                <div class="card-body">
-                    <h5 class="card-title">Temperature</h5>
-                    <p class="card-value">23.5 °C</p>
-                    <p class="card-text text-muted">
-                        Last updated: 10s ago
-                    </p>
-                </div>
-            </div>
-        </div>
-        <!-- Card 2 -->
-        <div class="col-12 col-md-4">
-            <div class="card text-center shadow-sm">
-                <div class="card-body">
-                    <h5 class="card-title">Humidity</h5>
-                    <p class="card-value">56 %</p>
-                    <p class="card-text text-muted">
-                        Normal range
-                    </p>
-                </div>
-            </div>
-        </div>
+    <div id="node-cards" class="d-flex">
+    </div>
 
-        <!-- Card 3 -->
-        <div class="col-12 col-md-4">
-            <div class="card text-center shadow-sm">
-                <div class="card-body">
-                    <h5 class="card-title">Gate Sensor</h5>
-                    <p class="card-value text-success">Online</p>
-                    <p class="card-text text-muted">
-                        ESP32 connected
-                    </p>
-                </div>
-            </div>
-        </div>
+    <div class="d-flex">
+        <h2 class="me-2" style="color: #fafafa; font-family: helvetica;">Total Devices: </h2>
+        <h2 id="device-total" style="color: #fafafa; font-family: helvetica;"></h2>
+    </div>
 
     </div> <!-- End of First Row -->
     <div class="row g-3 mt-0" id="cardRow"><!-- autofill cards --></div>
     </div>
-    <button class="btn btn-primary" type="button" id="test-button">Test</button>
-    <script type="module" src="js/nodes.js"></script>
+    <button class="btn btn-primary" type="button" id="test-button" style="display: none;">Test</button>
+    <script type="module" src="js/main.js"></script>
     <script>
     </script>
 </body>
