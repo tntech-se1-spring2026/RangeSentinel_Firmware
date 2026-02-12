@@ -4,8 +4,8 @@
 // This file contains logic that handles
 // HTTP queries.
 
-const HOST_ADDRESS = "range-sentinel.com";
-const HOST_PORT = "3000";
+const HOST_ADDRESS = "live.range-sentinel.com";
+const HOST_PORT = "80";
 
 // Generic function to query GET
 async function http_get(uri) {
