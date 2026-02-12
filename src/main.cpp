@@ -119,7 +119,7 @@ void setup(){
     // create the nodeStatus for our receiver
     NodeStatus receiverStatus = {};
     receiverStatus.nodeId = 1;
-    receiverStatus.messageId = 0;
+    receiverStatus.messageId = 1;
     receiverStatus.batteryVoltage = getBatteryVoltage();
     strlcpy(receiverStatus.nodeName, "receiver", sizeof(receiverStatus.nodeName));
     // MAC
@@ -135,7 +135,7 @@ void setup(){
     // create the nodeStatus for our sensor
     NodeStatus sensorStatus = {};
     sensorStatus.nodeId = 2;
-    sensorStatus.messageId = 0;
+    sensorStatus.messageId = 2;
     sensorStatus.batteryVoltage = 3.7f;
     strlcpy(sensorStatus.nodeName, "Door 1", sizeof(sensorStatus.nodeName));
     // MAC
