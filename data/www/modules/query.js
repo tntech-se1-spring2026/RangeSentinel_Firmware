@@ -20,15 +20,15 @@ async function http_get(uri) {
   }
 }
 
-export function ping_backend() {
+export async function ping_backend() {
   console.log(`Trying to reach backend at ${HOST_ADDRESS}:${HOST_PORT}`)
-  return http_get(`http://${HOST_ADDRESS}:${HOST_PORT}/web/ping`);
+  return await http_get(`http://${HOST_ADDRESS}:${HOST_PORT}/web/ping`);
 }
 
-export function get_nodes() {
-  return http_get(`http://${HOST_ADDRESS}:${HOST_PORT}/web/nodes`);
+export async function get_nodes() {
+  return await http_get(`http://${HOST_ADDRESS}:${HOST_PORT}/web/nodes-load`);
 }
 
-export function get_node_by_id(nodeid) {
-  return http_get(`http://${HOST_ADDRESS}:${HOST_PORT}/web/node?id=${nodeid}`);
+export async function get_node_by_id(nodeid) {
+  return await http_get(`http://${HOST_ADDRESS}:${HOST_PORT}/web/node?id=${nodeid}`);
 }
