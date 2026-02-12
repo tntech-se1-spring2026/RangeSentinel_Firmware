@@ -5,6 +5,7 @@
 #include "web_server.h"
 
 #include <Wire.h> // for low level comm w/screen
+#include <WiFi.h>
 #include <Adafruit_GFX.h> // graphics for screen
 #include <Adafruit_SSD1306.h> // driver chip for screen
 

@@ -1,4 +1,7 @@
 #include "hardware_manager.h"
+#include <Arduino.h>
+#include <array>
+#include "shared_types.h"
 #include "database_manager.h"
 
 // holds the time of the last screen update; used to check if we need to update screen again
@@ -84,15 +87,20 @@ void loop() {
 
 // --- viewing node ---
 #ifdef NODE_TYPE_VIEWER
+#include <WiFi.h>
+#include "web_server.h"
+// #include <WebServer.h>
+#include <LittleFS.h>
 
 // standard HTTP port
-WebServer server(80);
+#define HTTP_PORT 80
+static AsyncWebServer server(HTTP_PORT);
 
 unsigned long lastScreenMS      = 0;
 unsigned long lastDBMS          = 0;
 const long fiveMinInterval      = 300000;
 
-String WiFiPassword             = "password";
+static String WiFiPassword             = "password";
 
 
 
@@ -148,7 +156,7 @@ void setup(){
     Serial.print("Access IP Address: ");
     Serial.println(WiFi.softAPIP());  // should default to 192.168.4.1
 
-    setupWebServer(getDatabaseAsJson, getEventLogAsJson);
+    startWebServer(&server);
 
     // run the listen function exclusively on core 0
     xTaskCreatePinnedToCore(
@@ -164,9 +172,6 @@ void setup(){
 
 void loop() {
     currentMS = millis();
-
-    // handle webserver client
-    server.handleClient();
     
     // update OLED screen
     if(currentMS - lastScreenUpdate > fiveSecInterval){ // if it has been 5 sec since the last screen update

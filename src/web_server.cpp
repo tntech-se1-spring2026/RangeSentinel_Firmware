@@ -1,26 +1,49 @@
+#ifdef NODE_TYPE_VIEWER
+
 #include "web_server.h"
 
-void setupWebServer(String (*getStatusJson)(), String (*getLogJson)()) {
-    // home page
-    server.on("/", HTTP_GET, []() {
-        File file = LittleFS.open("/www/index.html", "r");
-        if (!file) {
-            server.send(404, "text/plain", "Web dashboard file not found in LittleFS");
-            return;
-        }
-        server.streamFile(file, "text/html");
-    });
+void startWebServer(AsyncWebServer *server) {
 
-    // JSON data api (live status)
-    server.on("/api/status", HTTP_GET, [getStatusJson]() {
-        server.send(200, "application/json", getStatusJson());
-    });
+    startBackend(server);
+    startFileServer(server);
+    startAPI(server);
 
-    // JSON data api (event log)
-    server.on("/api/history", HTTP_GET, [getLogJson]() {
-        server.send(200, "application/json", getLogJson());
-    });
-
-    server.begin();
-    Serial.println("HTTP server started");
+    server->begin();
 }
+
+void startFileServer(AsyncWebServer *server) {
+    // serves up files in www folder as requests come in
+    server->serveStatic("/", LittleFS, "/www/").setDefaultFile("index.html");
+}
+
+void startBackend(AsyncWebServer *server) {
+    // Basic sanity route
+    server->on("/web/ping", HTTP_GET, [](AsyncWebServerRequest *request) {
+        AsyncWebServerResponse *response = request->beginResponse(200, "text/plain", "pong");
+        Serial.println("Ping request made");
+        response->addHeader("Server", "ESP Async Web Server");
+        request->send(response);
+    });
+
+    // exports node db
+    server->on("/web/nodes", HTTP_GET, [](AsyncWebServerRequest *request) {
+        AsyncJsonResponse *response = new AsyncJsonResponse();
+
+        JsonDocument doc;
+        deserializeJson(doc, getDatabaseAsJson());
+
+        response->getRoot() = doc.to<JsonObject>();
+        response->setLength();
+
+        request->send(response);
+    });
+}
+
+void startAPI(AsyncWebServer *server) {
+    // API for inter-node comms here?
+    //
+    // Not sure if HTTP over LoRa is
+    // what you're going for though...
+}
+
+#endif
