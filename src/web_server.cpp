@@ -27,14 +27,8 @@ void startBackend(AsyncWebServer *server) {
 
     // exports node db
     server->on("/web/nodes", HTTP_GET, [](AsyncWebServerRequest *request) {
-        AsyncJsonResponse *response = new AsyncJsonResponse();
-
-        JsonDocument doc;
-        deserializeJson(doc, getDatabaseAsJson());
-
-        response->getRoot() = doc.to<JsonObject>();
-        response->setLength();
-
+        String buf = getDatabaseAsJson();
+        AsyncWebServerResponse *response = request->beginResponse(200, "application/json", buf);
         request->send(response);
     });
 }
