@@ -22,6 +22,19 @@ void startBackend(AsyncWebServer *server) {
         response->addHeader("Server", "ESP Async Web Server");
         request->send(response);
     });
+
+    // exports node db
+    server->on("/web/nodes", HTTP_GET, [](AsyncWebServerRequest *request) {
+        AsyncJsonResponse *response = new AsyncJsonResponse();
+
+        JsonDocument doc;
+        deserializeJson(doc, getDatabaseAsJson());
+
+        response->getRoot() = doc.to<JsonObject>();
+        response->setLength();
+
+        request->send(response);
+    });
 }
 
 void startAPI(AsyncWebServer *server) {
