@@ -1,7 +1,6 @@
 #include <Arduino.h>
 #include <array>
 #include "shared_types.h"
-#include "web_server.h"
 #include "database_manager.h"
 
 // sensor node
@@ -21,6 +20,7 @@ void loop() {
 // viewing node
 #ifdef NODE_TYPE_VIEWER
 #include <WiFi.h>
+#include "web_server.h"
 // #include <WebServer.h>
 #include <LittleFS.h>
 
