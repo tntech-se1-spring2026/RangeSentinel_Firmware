@@ -13,12 +13,21 @@ if (node_status.batt == "0") {
     bat_icon = "img/battery_full.svg";
 }
 
+let trigger;
+
+if (node_status.door == true) {
+    trigger = "Alert";
+} else {
+    trigger = "Normal";
+}
+
 return `
 <div style="width: 300px; background-color: ${bg_color};" class="card text-center shadow-sm m-3">
     <div class="card-body">
         <img style="width: 50px;" src="img/memory.svg" alt="device"></img>
         <h2>${node_status.name}</h2>
         <img style="width: 30px;" src="${bat_icon}" alt="battery level"></img>
+        <h2>${trigger}</h2>
     </div>
 </div>
 `;
