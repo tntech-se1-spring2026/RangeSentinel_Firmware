@@ -1,3 +1,5 @@
+#ifdef NODE_TYPE_VIEWER
+
 #include "web_server.h"
 
 void startWebServer(AsyncWebServer *server) {
@@ -43,3 +45,5 @@ void startAPI(AsyncWebServer *server) {
     // Not sure if HTTP over LoRa is
     // what you're going for though...
 }
+
+#endif
