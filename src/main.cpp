@@ -25,7 +25,8 @@ void loop() {
 #include <LittleFS.h>
 
 // standard HTTP port
-// WebServer server(80);
+#define HTTP_PORT 80
+static AsyncWebServer server(HTTP_PORT);
 
 unsigned long previousMillis = 0;
 const long interval = 300000; // 5 minutes
@@ -49,7 +50,7 @@ void setup() {
     Serial.println(WiFi.softAPIP());  // should default to 192.168.4.1
 
     // setupWebServer(getDatabaseAsJson, getEventLogAsJson);
-    startWebServer();
+    startWebServer(&server);
 }
 
 void loop() {

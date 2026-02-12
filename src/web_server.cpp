@@ -1,13 +1,12 @@
 #include "web_server.h"
 
-void startWebServer() {
-    AsyncWebServer server(80);
+void startWebServer(AsyncWebServer *server) {
 
-    startBackend(&server);
-    startFileServer(&server);
-    startAPI(&server);
+    startBackend(server);
+    startFileServer(server);
+    startAPI(server);
 
-    server.begin();
+    server->begin();
 }
 
 void startFileServer(AsyncWebServer *server) {
@@ -19,6 +18,7 @@ void startBackend(AsyncWebServer *server) {
     // Basic sanity route
     server->on("/web/ping", HTTP_GET, [](AsyncWebServerRequest *request) {
         AsyncWebServerResponse *response = request->beginResponse(200, "text/plain", "pong");
+        Serial.println("Ping request made");
         response->addHeader("Server", "ESP Async Web Server");
         request->send(response);
     });
