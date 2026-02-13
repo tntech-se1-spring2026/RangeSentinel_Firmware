@@ -3,35 +3,40 @@
 #include "database_manager.h"
 
 // live view
-std::array<NodeStatus, MAX_NODES> networkDatabase = {};
+std::array<NodeRecord, MAX_NODES> networkDatabase = {};
 // circular buffer history 
-std::array<NodeStatus, MAX_LOG_ENTRIES> eventLog = {};
+std::array<NodeRecord, MAX_LOG_ENTRIES> eventLog = {};
 int logHead = 0;
 bool needsPersistence = false;
 
 // helper function to update database
-void updateDatabase(NodeStatus incoming) {
-     incoming.lastSeen = millis();   // update timestamp
+void updateDatabase(MeshPacket incoming) {
+    if (incoming.nodeId >= networkDatabase.size()) {
+        Serial.printf("DB: Rejected node %d (out of bounds)\n", incoming.nodeId);
+        return;
+    }
 
-    if (incoming.nodeId < networkDatabase.size()) {
-        // only update if incoming is newer than what is already there
-        if (incoming.messageId > networkDatabase.at(incoming.nodeId).messageId) {
-            // update live view
-            networkDatabase.at(incoming.nodeId) = incoming;
+    NodeRecord& currentRecord = networkDatabase.at(incoming.nodeId);
 
-            // add to log
-            eventLog[logHead] = incoming;
-            logHead = (logHead + 1) % MAX_LOG_ENTRIES;   // stop overflow and make it 
+    // only update if incoming is newer than what is already there
+    if (incoming.messageId > currentRecord.lastPacket.messageId) {
+        currentRecord.lastPacket = incoming;
+        currentRecord.lastSeen = millis();
 
-            needsPersistence = true;   // mark we want to save it persistently when timer reaches the 5 min mark
-            Serial.printf("DB: Node %d updated & logged (Msg %d)\n", incoming.nodeId, incoming.messageId);
-        } 
-        else {
-            Serial.printf("DB: Ignored old msg %d from node %d\n", incoming.messageId, incoming.nodeId);
+        // assign default name if it doesn't have one
+        if (strlen(currentRecord.nodeName) == 0) {
+            snprintf(currentRecord.nodeName, sizeof(currentRecord.nodeName), "Node %d", incoming.nodeId);
         }
+
+        // add to history
+        eventLog[logHead] = currentRecord;
+        logHead = (logHead + 1) % MAX_LOG_ENTRIES;
+
+        needsPersistence = true;
+        Serial.printf("DB: Node %d updated & logged (Msg %d)\n", incoming.nodeId, incoming.messageId);
     }
     else {
-        Serial.printf("DB: Rejected node %d (out of bounds)\n", incoming.nodeId);
+        Serial.printf("DB: Ignored old/duplicate message %d from node %d\n", incoming.messageId, incoming.nodeId);
     }
 }
 
@@ -40,10 +45,10 @@ String getDatabaseAsJson() {
     JsonDocument doc;
     JsonArray root = doc.to<JsonArray>();
 
-    for (const auto& node : networkDatabase) {
-        if (node.messageId > 0) {
+    for (const auto& record : networkDatabase) {
+        if (record.lastPacket.messageId > 0) {
             JsonObject obj = root.add<JsonObject>();
-            nodeToJsonObject(node, obj);
+            nodeRecordToJsonObject(record, obj);
         }
     }
 
@@ -61,10 +66,10 @@ String getEventLogAsJson() {
     for (int i = 0; i < MAX_LOG_ENTRIES; i++) {
         // handle wrapping around circular buffer and avoid negative indices
         int index = (logHead - 1 - i + MAX_LOG_ENTRIES) % MAX_LOG_ENTRIES;
-        const NodeStatus& entry = eventLog[index];
-        if (entry.nodeId > 0) {
+        const NodeRecord& entry = eventLog[index];
+        if (entry.lastPacket.nodeId > 0) {
             JsonObject obj = root.add<JsonObject>();
-            nodeToJsonObject(entry, obj);
+            nodeRecordToJsonObject(entry, obj);
         }
     }
 
@@ -86,10 +91,10 @@ bool saveDatabaseToFS() {
         JsonDocument doc;
         JsonArray root = doc.to<JsonArray>();
 
-        for (const auto& node : networkDatabase) {
-            if (node.nodeId > 0) {   // only save active nodes
+        for (const auto& record : networkDatabase) {
+            if (record.lastPacket.nodeId > 0) {   // only save active nodes
                 JsonObject obj = root.add<JsonObject>();
-                nodeToJsonObject(node, obj);
+                nodeRecordToJsonObject(record, obj);
             }
         }
         if (serializeJson(doc, file) == 0) {
@@ -110,9 +115,9 @@ bool saveDatabaseToFS() {
         JsonArray logs = logDoc["data"].to<JsonArray>();  // add label since we have head as well
 
         for (const auto& entry : eventLog) {
-            if (entry.nodeId > 0) {
+            if (entry.lastPacket.nodeId > 0) {
                 JsonObject obj = logs.add<JsonObject>();
-                nodeToJsonObject(entry, obj);
+                nodeRecordToJsonObject(entry, obj);
             }
         }
         if (serializeJson(logDoc, logFile) == 0) {
@@ -143,7 +148,7 @@ void getDatabaseFromFS() {
                 for (JsonObject obj : array) {
                     uint32_t id = obj["id"];
                     if (id < MAX_NODES) {
-                        jsonObjectToNode(obj, networkDatabase[id]);
+                        jsonObjectToNodeRecord(obj, networkDatabase[id]);
                     }
                 }
                 Serial.println("DB: Live status restored.");
@@ -168,7 +173,7 @@ void getDatabaseFromFS() {
                 int i = 0;
                 for (JsonObject obj : logs) {
                     if (i < MAX_LOG_ENTRIES) {
-                        jsonObjectToNode(obj, eventLog[i]);
+                        jsonObjectToNodeRecord(obj, eventLog[i]);
                         i++;
                     }
                 }
