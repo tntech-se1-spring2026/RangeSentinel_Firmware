@@ -42,7 +42,8 @@ void loop() {
 #ifdef NODE_TYPE_VIEWER
 
 // standard HTTP port
-WebServer server(80);
+#define HTTP_PORT 80
+static AsyncWebServer server(HTTP_PORT);
 
 unsigned long lastScreenMS      = 0;
 unsigned long lastDBMS          = 0;
@@ -89,7 +90,7 @@ void setup(){
     Serial.print("Access IP Address: ");
     Serial.println(WiFi.softAPIP());  // should default to 192.168.4.1
 
-    setupWebServer(getDatabaseAsJson, getEventLogAsJson);
+    startWebServer(&server);
 
     // run the listen function exclusively on core 0
     xTaskCreatePinnedToCore(

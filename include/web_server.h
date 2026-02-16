@@ -4,10 +4,14 @@
 #include <LittleFS.h>
 #include <WebServer.h>
 #include <WiFi.h>
+#include <ESPAsyncWebServer.h>
 
 extern WebServer server;
 extern String WiFiPassword;
+void startWebServer(AsyncWebServer *server);
 
-void setupWebServer(String (*getStatusJson)(), String (*getLogJson)());
+void startFileServer(AsyncWebServer *server);
+void startBackend(AsyncWebServer *server);
+void startAPI(AsyncWebServer *server);
 
 #endif

@@ -20,8 +20,9 @@
 #define MAX_NODES 10
 #define MAX_LOG_ENTRIES 50
 
-extern std::array<NodeStatus, MAX_NODES> networkDatabase;
-extern std::array<NodeStatus, MAX_LOG_ENTRIES> eventLog;
+// officially declared in main.cpp
+extern std::array<NodeRecord, MAX_NODES> networkDatabase;
+extern std::array<NodeRecord, MAX_LOG_ENTRIES> eventLog;
 extern int logHead;
 extern bool needsPersistence;// global flag to track if we need to add to persistent memory
 extern size_t numNodesInNetwork;
@@ -33,7 +34,7 @@ extern SemaphoreHandle_t meshMutex;
 bool appendToNetwork(NodeStatus newStatus);
 
 // helper function to update database
-void updateDatabase(NodeStatus incoming);
+void updateDatabase(MeshPacket incoming);
 
 // converts entire active database to JSON array
 String getDatabaseAsJson();
