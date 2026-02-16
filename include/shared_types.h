@@ -28,6 +28,7 @@ struct SensorReading {
     uint8_t sensorIndex;  // which sensor
     SensorType type;  // format identifier
     SensorData payload;  // actual data
+    bool isAlert;  // flag to indicate if this reading is a security alert
 };
 
 // what is sent over LoRa
@@ -43,6 +44,7 @@ struct NodeRecord {
     MeshPacket lastPacket;
     char nodeName[20];
     unsigned long lastSeen;  // local timestamp
+    bool hasActiveAlert;  // global alert status for the node
 };
 
 // packet to and from bytes

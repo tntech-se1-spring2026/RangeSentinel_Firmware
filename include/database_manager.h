@@ -28,6 +28,9 @@ bool saveDatabaseToFS();
 // get database from LittleFS
 void getDatabaseFromFS();
 
+// decides if incoming reading constitutes an alert
+bool evaluateAlert(const SensorReading& r);
+
 // development function to wipe db and logs to start fresh
 // CAN'T THINK OF A USE CASE TO BE IN FINAL PRODUCT
 void clearAllData();

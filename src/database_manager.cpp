@@ -211,6 +211,20 @@ void getDatabaseFromFS() {
     }
 }
 
+// decides if incoming reading constitutes an alert
+bool evaluateAlert(const SensorReading& r) {
+    switch (r.type) {
+    case SENSOR_TYPE_DOOR:
+        return r.payload.asBool == true;
+    case SENSOR_TYPE_MOTION:
+        return r.payload.asBool == true;
+    case SENSOR_TYPE_BATTERY:
+        return r.payload.asFloat < 3.3;  // voltage less than 3.3 considered low battery
+    default:
+        return false;
+    }
+}
+
 // development function to wipe db and logs to start fresh
 // CAN'T THINK OF A USE CASE TO BE IN FINAL PRODUCT
 void clearAllData() {
