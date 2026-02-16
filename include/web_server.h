@@ -6,6 +6,8 @@
 #include <ESPAsyncWebServer.h>
 #include <ArduinoJson.h>
 
+extern AsyncWebSocket ws;
+
 void startWebServer(AsyncWebServer *server);
 
 void startFileServer(AsyncWebServer *server);

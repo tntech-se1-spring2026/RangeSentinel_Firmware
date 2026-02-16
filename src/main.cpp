@@ -60,6 +60,8 @@ void loop() {
             previousMillis = currentMillis;
         }
     }
+
+    ws.cleanupClients();
 }
 
 #endif
