@@ -1,6 +1,9 @@
 #include <ArduinoJson.h>
 #include <LittleFS.h>
+#include <ESPAsyncWebServer.h>
 #include "database_manager.h"
+
+extern AsyncWebSocket ws;
 
 // live view
 std::array<NodeRecord, MAX_NODES> networkDatabase = {};
@@ -33,6 +36,14 @@ void updateDatabase(MeshPacket incoming) {
         logHead = (logHead + 1) % MAX_LOG_ENTRIES;
 
         needsPersistence = true;
+
+        JsonDocument updateDoc;
+        JsonObject obj = updateDoc.to<JsonObject>();
+        nodeRecordToJsonObject(currentRecord, obj);
+        String output;
+        serializeJson(updateDoc, output);
+        ws.textAll(output);
+
         Serial.printf("DB: Node %d updated & logged (Msg %d)\n", incoming.nodeId, incoming.messageId);
     }
     else {
