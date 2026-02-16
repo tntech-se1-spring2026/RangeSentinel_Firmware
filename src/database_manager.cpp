@@ -25,7 +25,19 @@ void updateDatabase(MeshPacket incoming) {
 
     // only update if incoming is newer than what is already there
     if (incoming.messageId > currentRecord.lastPacket.messageId) {
+        bool foundAlert = false;
+
+        // look for alerts in the readings
+        for (int i = 0; i < incoming.readingCount; i++) {
+            // save alert status to individual reading
+            incoming.readings[i].isAlert = evaluateAlert(incoming.readings[i]);
+            if (evaluateAlert(incoming.readings[i])) {
+                foundAlert = true;
+            }
+        }
+
         currentRecord.lastPacket = incoming;
+        currentRecord.hasActiveAlert = foundAlert;  // store alert status
         currentRecord.lastSeen = millis();
 
         // assign default name if it doesn't have one
@@ -48,7 +60,8 @@ void updateDatabase(MeshPacket incoming) {
         ws.textAll(output);
         #endif
 
-        Serial.printf("DB: Node %d updated & logged (Msg %d)\n", incoming.nodeId, incoming.messageId);
+        // blankspace to keep logs aligned
+        Serial.printf("%s DB: Node %d updated & logged (Msg %d)\n", foundAlert ? "[ALERT!]" : "        ", incoming.nodeId, incoming.messageId);
     }
     else {
         Serial.printf("DB: Ignored old/duplicate message %d from node %d\n", incoming.messageId, incoming.nodeId);

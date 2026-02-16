@@ -85,6 +85,7 @@ void nodeRecordToJsonObject(const NodeRecord& record, JsonObject& obj) {
     obj["name"] = record.nodeName;
     obj["ls"] = record.lastSeen;
     obj["mId"] = record.lastPacket.messageId;
+    obj["alert"] = record.hasActiveAlert;
 
     JsonArray sensors = obj["sensors"].to<JsonArray>();
     // loop through readings and convert them to JSON objects
@@ -101,18 +102,22 @@ void nodeRecordToJsonObject(const NodeRecord& record, JsonObject& obj) {
             case SENSOR_TYPE_DOOR:
                 s["type"] = "door";
                 s["val"] = r.payload.asBool;
+                s["alert"] = r.isAlert;
                 break;
             case SENSOR_TYPE_MOTION:
                 s["type"] = "motion";
                 s["val"] = r.payload.asBool;
+                s["alert"] = r.isAlert;
                 break;
             case SENSOR_TYPE_BATTERY:
                 s["type"] = "batt";
                 s["val"] = r.payload.asFloat;
+                s["alert"] = r.isAlert;
                 break;
             case SENSOR_TYPE_ERROR:
                 s["type"] = "error";
                 s["val"] = r.payload.asByte;
+                s["alert"] = r.isAlert;
                 break;
             default: 
                 s["type"] = "unknown";
@@ -128,4 +133,5 @@ void jsonObjectToNodeRecord(const JsonObjectConst& obj, NodeRecord& record) {
     record.lastSeen = obj["ls"];
     record.lastPacket.messageId = obj["mId"];
     strlcpy(record.nodeName, obj["name"] | "Unknown", sizeof(record.nodeName));
+    record.hasActiveAlert = obj["alert"] | false;
 }

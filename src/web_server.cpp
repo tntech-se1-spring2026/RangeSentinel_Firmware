@@ -39,12 +39,12 @@ void startBackend(AsyncWebServer *server) {
 
     // exports node db
     server->on("/web/nodes", HTTP_GET, [](AsyncWebServerRequest *request) {
-        AsyncJsonResponse *response = new AsyncJsonResponse();
+        AsyncJsonResponse *response = new AsyncJsonResponse(true);  // true to expect array
 
         JsonDocument doc;
         deserializeJson(doc, getDatabaseAsJson());
 
-        response->getRoot() = doc.to<JsonObject>();
+        response->getRoot() = doc.to<JsonArray>();
         response->setLength();
 
         request->send(response);
