@@ -1,11 +1,15 @@
 #ifndef WEB_SERVER_H
 #define WEB_SERVER_H
 
-#include <WebServer.h>
+#include "database_manager.h"
+#include <LittleFS.h>
+#include <ESPAsyncWebServer.h>
+#include <ArduinoJson.h>
 
-// officially declared in main.cpp
-extern WebServer server;
+void startWebServer(AsyncWebServer *server);
 
-void setupWebServer(String (*getStatusJson)(), String (*getLogJson)());
+void startFileServer(AsyncWebServer *server);
+void startBackend(AsyncWebServer *server);
+void startAPI(AsyncWebServer *server);
 
 #endif

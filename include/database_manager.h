@@ -6,14 +6,15 @@
 
 #define MAX_NODES 10
 #define MAX_LOG_ENTRIES 50
+
 // officially declared in main.cpp
-extern std::array<NodeStatus, MAX_NODES> networkDatabase;
-extern std::array<NodeStatus, MAX_LOG_ENTRIES> eventLog;
+extern std::array<NodeRecord, MAX_NODES> networkDatabase;
+extern std::array<NodeRecord, MAX_LOG_ENTRIES> eventLog;
 extern int logHead;
 extern bool needsPersistence;
 
 // helper function to update database
-void updateDatabase(NodeStatus incoming);
+void updateDatabase(MeshPacket incoming);
 
 // converts entire active database to JSON array
 String getDatabaseAsJson();

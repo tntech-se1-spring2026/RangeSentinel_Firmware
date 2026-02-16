@@ -1,7 +1,6 @@
 #include <Arduino.h>
 #include <array>
 #include "shared_types.h"
-#include "web_server.h"
 #include "database_manager.h"
 
 // sensor node
@@ -21,12 +20,13 @@ void loop() {
 // viewing node
 #ifdef NODE_TYPE_VIEWER
 #include <WiFi.h>
-#include <WebServer.h>
+#include "web_server.h"
 #include <LittleFS.h>
 #include <DNSServer.h>
 
 // standard HTTP port
-WebServer server(80);
+#define HTTP_PORT 80
+static AsyncWebServer server(HTTP_PORT);
 
 DNSServer dnsServer;
 #define DNS_PORT 53
@@ -48,19 +48,17 @@ void setup() {
 
     // start access point
     // (SSID, Password)
-    WiFi.softAP("Range-Sentinel-Gateway", "secure-sentinel-2026");
+    WiFi.softAP("Range-Sentinel-Gateway", "password");
     Serial.print("Access IP Address: ");
     Serial.println(WiFi.softAPIP());  // should default to 192.168.4.1
 
     dnsServer.start(DNS_PORT, "*", WiFi.softAPIP());
+    startWebServer(&server);
 
-    setupWebServer(getDatabaseAsJson, getEventLogAsJson);
 }
 
 void loop() {
-    server.handleClient();
     dnsServer.processNextRequest();
-
     // periodic saving
     unsigned long currentMillis = millis();
     if (currentMillis - previousMillis >= interval) {
