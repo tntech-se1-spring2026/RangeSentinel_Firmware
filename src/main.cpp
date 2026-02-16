@@ -22,10 +22,14 @@ void loop() {
 #include <WiFi.h>
 #include "web_server.h"
 #include <LittleFS.h>
+#include <DNSServer.h>
 
 // standard HTTP port
 #define HTTP_PORT 80
 static AsyncWebServer server(HTTP_PORT);
+
+DNSServer dnsServer;
+#define DNS_PORT 53
 
 unsigned long previousMillis = 0;
 const long interval = 300000; // 5 minutes
@@ -44,14 +48,17 @@ void setup() {
 
     // start access point
     // (SSID, Password)
-    WiFi.softAP("Range-Sentinel-Gateway", "secure-sentinel-2026");
+    WiFi.softAP("Range-Sentinel-Gateway", "password");
     Serial.print("Access IP Address: ");
     Serial.println(WiFi.softAPIP());  // should default to 192.168.4.1
 
+    dnsServer.start(DNS_PORT, "*", WiFi.softAPIP());
     startWebServer(&server);
+
 }
 
 void loop() {
+    dnsServer.processNextRequest();
     // periodic saving
     unsigned long currentMillis = millis();
     if (currentMillis - previousMillis >= interval) {
