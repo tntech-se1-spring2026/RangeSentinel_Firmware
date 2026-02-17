@@ -1,63 +1,109 @@
-#include <Arduino.h>
-#include <array>
-#include "shared_types.h"
+#include "hardware_manager.h"
 #include "database_manager.h"
+
+uint32_t nodeID                 = 0; // zero is the nodeID that all sensor nodes get set to while waiting to be assigned as a node in the mesh from the viewer node
+unsigned long currentMS         = 0;
 
 // sensor node
 #ifdef NODE_TYPE_SENSOR
-
+unsigned long lastRSMS          = 0;
+const long fiftyMSInterval      = 50;
 void setup() {
-
+    setupRadio(0);
+    // TODO: Add logic to decide what kind of sensor node
+    pinMode(RS_PIN, INPUT_PULLUP); // set the reed switch's pin's mode
 }
 
 void loop() {
-
+    /*
+       IMPORTANT NOTE REGARDING COMMS:
+       The loop() needs to run as fast as possible. If you put a delay() 
+       at the end of the loop, our node will be "deaf" during that delay.
+    */
+   // TODO: create sensor node logic
+    currentMS = millis();
+    
+    sensorListen();
+    
+    // delay prevents bouncing
+    // if(currentMS - lastRSMS > fiftyMSInterval){
+    //     reedSwitchLogic();
+    // }
 }
-
 #endif
 
-// ----------------------------------
-// viewing node
+// --- viewing node ---
 #ifdef NODE_TYPE_VIEWER
-#include <WiFi.h>
 #include "web_server.h"
-#include <LittleFS.h>
+#include <DNSServer.h>
 
-// standard HTTP port
-#define HTTP_PORT 80
 static AsyncWebServer server(HTTP_PORT);
+unsigned long lastScreenMS      = 0;
+unsigned long lastDBMS          = 0;
+const long fiveMinInterval      = 300000;
+const long fiveSecInterval      = 5000;
+String WiFiPassword             = "password";
 
+DNSServer dnsServer;
+#define DNS_PORT 53
 unsigned long previousMillis = 0;
-const long interval = 300000; // 5 minutes
+// holds the time of the last screen update; used to check if we need to update screen again
+unsigned long lastScreenUpdate = 0;
 
-void setup() {
+void setup(){
     Serial.begin(115200);
 
-    // start LittleFS. Exit if failed
-    if (!LittleFS.begin(true)) {
-        Serial.println("An error occurred while mounting LittleFS");
-        return;
-    }
-    Serial.println("LittleFS mounted successfully");
+    setupScreen();
 
+    // start LittleFS. Halt if failed
+    if (!LittleFS.begin(true)){
+        Serial.println("An error occurred while mounting LittleFS");
+        while(true);
+    }
     getDatabaseFromFS();
 
+    // initialize the mutex to protect db shared btwn cores
+    meshMutex = xSemaphoreCreateMutex();
+    
+    nodeID = 1; // hard set the nodeID of the viewing node to one
+    setupRadio(nodeID);
+    // run the listen function exclusively on core 0
+    xTaskCreatePinnedToCore(
+        receiverListen,
+        "ReceiverListenTask",
+        5000,
+        NULL,
+        1,
+        NULL,
+        0
+    );
+
     // start access point
-    // (SSID, Password)
-    WiFi.softAP("Range-Sentinel-Gateway", "secure-sentinel-2026");
+    WiFi.softAP("Range-Sentinel-Gateway", WiFiPassword); // (SSID, Password)
     Serial.print("Access IP Address: ");
     Serial.println(WiFi.softAPIP());  // should default to 192.168.4.1
 
+    dnsServer.start(DNS_PORT, "*", WiFi.softAPIP());
     startWebServer(&server);
 }
 
 void loop() {
+    currentMS = millis();
+    
+    // update OLED screen
+    if(currentMS - lastScreenUpdate > fiveSecInterval){ // if it has been 5 sec since the last screen update
+        updateScreen();
+        lastScreenUpdate = millis();
+    }
+
+    dnsServer.processNextRequest();
+
+    // TODO: Add logic that prevents this from updating if there haven't been any changes
     // periodic saving
-    unsigned long currentMillis = millis();
-    if (currentMillis - previousMillis >= interval) {
-        if (needsPersistence) {
+    if (currentMS - lastDBMS >= fiveMinInterval){
+        if(needsPersistence){
             saveDatabaseToFS();
-            previousMillis = currentMillis;
+            lastDBMS = currentMS;
         }
     }
 

@@ -3,15 +3,28 @@
 
 #include "database_manager.h"
 #include <LittleFS.h>
+#include <WebServer.h>
 #include <ESPAsyncWebServer.h>
-#include <ArduinoJson.h>
+#include <AsyncJson.h>
+
+#define HTTP_PORT 80 // standard HTTP port
 
 extern AsyncWebSocket ws;
 
+/// @brief 
+/// @param server 
 void startWebServer(AsyncWebServer *server);
 
+/// @brief 
+/// @param server 
 void startFileServer(AsyncWebServer *server);
+
+/// @brief 
+/// @param server 
 void startBackend(AsyncWebServer *server);
+
+/// @brief
+/// @param server
 void startAPI(AsyncWebServer *server);
 
 #endif
