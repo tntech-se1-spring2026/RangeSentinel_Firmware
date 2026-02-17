@@ -6,6 +6,7 @@
 
 #define MAX_SENSORS_PER_PACKET 4
 #define MAX_PACKET_SIZE RMT_MEM_64
+#define BATTERY_THRESHOLD 3.4  // voltage considered to be low battery for alert
 
 // what kind of data?
 typedef enum {

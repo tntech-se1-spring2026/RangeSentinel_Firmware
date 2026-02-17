@@ -237,7 +237,7 @@ bool evaluateAlert(const SensorReading& r) {
     case SENSOR_TYPE_MOTION:
         return r.payload.asBool == true;
     case SENSOR_TYPE_BATTERY:
-        return r.payload.asFloat < 3.3;  // voltage less than 3.3 considered low battery
+        return r.payload.asFloat < BATTERY_THRESHOLD;
     default:
         return false;
     }
