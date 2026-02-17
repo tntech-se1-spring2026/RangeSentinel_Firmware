@@ -31,15 +31,15 @@ extern String WiFiPassword;
 
 #pragma region FUNCTIONS
 // --- SCREEN ---
-/// @brief
+/// @brief turns on the screen & posts the booting page
 void setupScreen();
 
-/// @brief 
+/// @brief posts the main page with updated data
 void updateScreen();
 
 // --- RADIO ---
-/// @brief 
-/// @param nodeID 
+/// @brief resets the radio, inits the manager, sets the freq, & sets radio power (23dBm current)
+/// @param nodeID sets the nodeID for the manager
 void setupRadio(uint8_t nodeID);
 
 /// @brief listens for and handles incoming packets from the network

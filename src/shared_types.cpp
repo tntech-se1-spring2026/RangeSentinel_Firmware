@@ -6,7 +6,6 @@ size_t serializePacket(const MeshPacket& packet, uint8_t* buffer, size_t maxLen)
     if (cursor + 6 > maxLen) {
         return 0;
     }
-    buffer[cursor++] = packet.nodeId;  // note post increment
     memcpy(&buffer[cursor], &packet.messageId, 4);  // write messageId
     cursor += 4;
     buffer[cursor++] = packet.readingCount;
@@ -16,7 +15,7 @@ size_t serializePacket(const MeshPacket& packet, uint8_t* buffer, size_t maxLen)
         if (cursor + 6 > maxLen) break;
 
         Reading r = packet.readings[i];  // get current reading struct
-        buffer[cursor++] = r.sensorIndex;
+        //buffer[cursor++] = r.sensorIndex;
         buffer[cursor++] = (uint8_t)r.type;
 
         // write actual data
@@ -41,7 +40,6 @@ bool deserializePacket(const uint8_t* buffer, size_t len, MeshPacket& packet) {
     size_t cursor = 0;
     if (len < 6) return false;
 
-    packet.nodeId = buffer[cursor++];
     memcpy(&packet.messageId, &buffer[cursor], 4);
     cursor += 4;
     packet.readingCount = buffer[cursor++];
@@ -50,13 +48,13 @@ bool deserializePacket(const uint8_t* buffer, size_t len, MeshPacket& packet) {
     for (int i = 0; i < packet.readingCount; i++) {
         if (cursor >= len) break;
 
-        packet.readings[i].sensorIndex = buffer[cursor++];
-        packet.readings[i].type = (SensorType)buffer[cursor++];
+        //packet.readings[i].sensorIndex = buffer[cursor++];
+        packet.readings[i].type = (DataType)buffer[cursor++];
 
         switch (packet.readings[i].type) {
             // fall down to error case (all write 1 byte)
-            case SENSOR_TYPE_DOOR:
-            case SENSOR_TYPE_MOTION:
+            case DOOR_SENSOR:
+            case MOTION_SENSOR:
             case SENSOR_TYPE_ERROR:
                 packet.readings[i].payload.asByte = buffer[cursor++];
                 // safety check for deserializing booleans
@@ -64,7 +62,7 @@ bool deserializePacket(const uint8_t* buffer, size_t len, MeshPacket& packet) {
                     packet.readings[i].payload.asBool = (packet.readings[i].payload.asByte > 0);
                 }
                 break;
-            case SENSOR_TYPE_BATTERY:
+            case BATTERY_SENSOR:
                 memcpy(&packet.readings[i].payload.asFloat, &buffer[cursor], 4);
                 cursor += 4;
                 break;
@@ -76,7 +74,7 @@ bool deserializePacket(const uint8_t* buffer, size_t len, MeshPacket& packet) {
 
 void nodeRecordToJsonObject(const NodeRecord& record, JsonObject& obj) {
     // add meta data to json
-    obj["id"] = record.lastPacket.nodeId;
+    obj["id"] = record.nodeID;
     obj["name"] = record.nodeName;
     obj["ls"] = record.lastSeen;
     obj["mId"] = record.lastPacket.messageId;
@@ -86,22 +84,22 @@ void nodeRecordToJsonObject(const NodeRecord& record, JsonObject& obj) {
     for (int i = 0; i < record.lastPacket.readingCount; i++) {
         // add new obj inside the array
         JsonObject s = sensors.add<JsonObject>();
-        SensorReading r = record.lastPacket.readings[i];
+        Reading r = record.lastPacket.readings[i];
 
         // add sensor index
-        s["idx"] = r.sensorIndex;
+        //s["idx"] = r.sensorIndex;
 
         // convert enum to human readable string
         switch (r.type) {
-            case SENSOR_TYPE_DOOR:
+            case DOOR_SENSOR:
                 s["type"] = "door";
                 s["val"] = r.payload.asBool;
                 break;
-            case SENSOR_TYPE_MOTION:
+            case MOTION_SENSOR:
                 s["type"] = "motion";
                 s["val"] = r.payload.asBool;
                 break;
-            case SENSOR_TYPE_BATTERY:
+            case BATTERY_SENSOR:
                 s["type"] = "batt";
                 s["val"] = r.payload.asFloat;
                 break;
@@ -118,7 +116,7 @@ void nodeRecordToJsonObject(const NodeRecord& record, JsonObject& obj) {
 
 void jsonObjectToNodeRecord(const JsonObjectConst& obj, NodeRecord& record) {
     // restore meta data
-    record.lastPacket.nodeId = obj["id"];
+    record.nodeID = obj["id"];
     record.lastSeen = obj["ls"];
     record.lastPacket.messageId = obj["mId"];
     strlcpy(record.nodeName, obj["name"] | "Unknown", sizeof(record.nodeName));

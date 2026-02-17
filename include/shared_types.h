@@ -26,7 +26,7 @@ typedef union {
 
 // single sensor event
 struct Reading {
-    uint8_t sensorIndex;    // TODO: REMOVE
+    //uint8_t sensorIndex;    // TODO: REMOVE
     DataType type;        // format identifier
     Data payload;     // actual data
 };

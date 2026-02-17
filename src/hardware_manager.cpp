@@ -201,6 +201,7 @@ float getBatteryVoltage(){
     return ((raw / 4095.0) * 3.3 * 2.0 * 1.1);
 }
 
+// TODO: Make this account for non linear discharging
 int getBatteryPercentage(){
     // Li-ion range: 4.2V (100%) down to 3.2V (0%)
     int percentage = (int)((getBatteryVoltage() - 3.2) / (4.2 - 3.2) * 100);
