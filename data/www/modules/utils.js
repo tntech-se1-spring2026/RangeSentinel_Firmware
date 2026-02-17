@@ -33,8 +33,6 @@ export function create_card(node_status) {
 }
 
 export function createNotification(notification){
-    const test = notification.alert;
-    console.log(test);
     return `
     <li><a class="dropdown-item chosenFont" href="#">${notification.alert}</a></li>
     `

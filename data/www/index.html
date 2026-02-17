@@ -20,27 +20,27 @@
                     <h1 class="chosenFont" style="color: #2d2d2d;">Range Sentinel</h1>
                 </div>
             </a>
-            <div class="btn-group dropstart" id="action_items">
+            <div class="btn-group dropstart" id="action_items"> <!-- button to open notification dropdown -->
                 <button type="button" class="btn btn-secondary dropdown-toggle" data-bs-toggle="dropdown" data-bs-auto-close="false" aria-expanded="false">
                     <img src="img/notifications.svg" style="margin-right: 10px;" alt="notifications">
                 </button>
-                <ul class="dropdown-menu" id="notification-dropdown">
-                    <!--<li><a class="dropdown-item" href="#" style="display: none;">No new notifications</a></li>
-                    <li><a class="dropdown-item chosenFont" href="#">Notification 1</a></li>
-                    <li><a class="dropdown-item active chosenFont" href="#">Notification 2</a></li>
-                    <li><a class="dropdown-item-text chosenFont" href="#">Notification 3</a></li>
-                    <p class="chosenFont">You can also do freeform text in dropdowns</p>-->
+                <ul class="dropdown-menu" id="notification-dropdown"> <!-- dropdown menu for notifications -->
+                    <li><a class="dropdown-item" href="#" style="display: none;">No new notifications</a></li>
+                    <li><a class="dropdown-item chosenFont" href="#">Notification 1 (normal)</a></li>
+                    <li><a class="dropdown-item active chosenFont" href="#">Notification 2 (active)</a></li>
+                    <li><a class="dropdown-item-text chosenFont" href="#">Notification 3 (text) </a></li>
+                    <p class="chosenFont">You can also do freeform text in dropdowns</p>
                 </ul>
-                <img src="img/notifications_unread.svg" style="margin-right: 10px; display: none;" alt="unread notifications">
+                <img src="img/notifications_unread.svg" style="margin-right: 10px; display: none;" alt="unread notifications"> <!-- icon for unread notifications -->
             </div>
         </div>
     </nav>
 
-    <div class="container mt-4">
+    <div class="container mt-4"> <!-- remember, container -> row -> col -> card -->
         <h1 class="chosenFont" style="color: #fafafa;">Device Status</h1>
-        <button class="btn btn-primary mb-3" id="notif-button">Get Notif</button>
+        <button class="btn btn-primary mb-3" id="notif-button">Get Notif</button> <!-- button to test notification retrieval -->
         <p class="chosenFont" style="color: #fafafa;" id="device-total"><!-- device total --></p>
-        <div class="row g-3" id="node-cards"></div>
+        <div class="row g-3" id="node-cards"></div> <!-- defines the rows for cards -->
     </div>
     <script type="module" src="js/main.js"></script>
     <script>

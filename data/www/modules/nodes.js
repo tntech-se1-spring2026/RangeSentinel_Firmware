@@ -14,11 +14,11 @@ export async function update(){
 }
 
 export async function test_notification(){
-    const response = await query.get_node_notification();
-    const notification = await response.json();
-    
+    const response = await query.get_node_notification(); //Requests notification data from backend, currently a JSON
+    const notification = await response.json(); 
+
     console.log(notification);
-    notification.forEach(element => {
+    notification.forEach(element => { //For each element, create a notification card and add it to the dropdown menu
         console.log(element);
         document.querySelector('#notification-dropdown').insertAdjacentHTML("beforeend", utils.createNotification(element));
     });
