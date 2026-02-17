@@ -4,7 +4,7 @@
 // This file contains logic that handles
 // HTTP queries.
 
-const HOST_ADDRESS = "range-sentinel.com";
+const HOST_ADDRESS = "localhost";
 const HOST_PORT = "3000";
 
 // Generic function to query GET
@@ -26,9 +26,13 @@ export function ping_backend() {
 }
 
 export function get_nodes() {
-  return http_get(`http://${HOST_ADDRESS}:${HOST_PORT}/web/nodes`);
+  return http_get(`http://${HOST_ADDRESS}:${HOST_PORT}/web/nodes-load`);
 }
 
 export function get_node_by_id(nodeid) {
   return http_get(`http://${HOST_ADDRESS}:${HOST_PORT}/web/node?id=${nodeid}`);
+}
+
+export function get_node_notification(){
+  return http_get(`http://${HOST_ADDRESS}:${HOST_PORT}/web/get-notification`);
 }

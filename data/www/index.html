@@ -7,12 +7,8 @@
     <script src="js/bootstrap.bundle.min.js"></script>
     <title>Range Sentinel</title>
     <style>
-        .card-body {
-            min-height: 140px;
-        }
-        .card-value {
-            font-size: 2rem;
-            font-weight: 600;
+        .chosenFont {
+            font-family: helvetica;
         }
     </style>
 </head>
@@ -21,26 +17,30 @@
         <div class="container-fluid">
             <a class="navbar-brand">
                 <div class="banner">
-                    <h1 style="color: #2d2d2d; font-family: helvetica;">Range Sentinel</h1>
+                    <h1 class="chosenFont" style="color: #2d2d2d;">Range Sentinel</h1>
                 </div>
             </a>
-            <div id="action_items">
-                <img src="img/notifications.svg" alt="notifications">
-                <img src="img/notifications_unread.svg" alt="unread notifications" style="display: none;">
-                <img src="img/menu.svg" alt="menu">
+            <div class="btn-group dropstart" id="action_items">
+                <button type="button" class="btn btn-secondary dropdown-toggle" data-bs-toggle="dropdown" data-bs-auto-close="false" aria-expanded="false">
+                    <img src="img/notifications.svg" style="margin-right: 10px;" alt="notifications">
+                </button>
+                <ul class="dropdown-menu" id="notification-dropdown">
+                    <!--<li><a class="dropdown-item" href="#" style="display: none;">No new notifications</a></li>
+                    <li><a class="dropdown-item chosenFont" href="#">Notification 1</a></li>
+                    <li><a class="dropdown-item active chosenFont" href="#">Notification 2</a></li>
+                    <li><a class="dropdown-item-text chosenFont" href="#">Notification 3</a></li>
+                    <p class="chosenFont">You can also do freeform text in dropdowns</p>-->
+                </ul>
+                <img src="img/notifications_unread.svg" style="margin-right: 10px; display: none;" alt="unread notifications">
             </div>
         </div>
     </nav>
 
     <div class="container mt-4">
-    <h1 style="color: #fafafa; font-family: helvetica;">Device Status</h1>
-    
-    <p style="color: #fafafa; font-family: helvetica;" id="device-total"><!-- device total --></p>
-    <div id="node-cards" class="d-flex">
-    </div>
-    
-    </div> <!-- End of First Row -->
-    
+        <h1 class="chosenFont" style="color: #fafafa;">Device Status</h1>
+        <button class="btn btn-primary mb-3" id="notif-button">Get Notif</button>
+        <p class="chosenFont" style="color: #fafafa;" id="device-total"><!-- device total --></p>
+        <div class="row g-3" id="node-cards"></div>
     </div>
     <script type="module" src="js/main.js"></script>
     <script>

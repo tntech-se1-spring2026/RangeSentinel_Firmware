@@ -12,3 +12,14 @@ export async function update(){
     });
     document.querySelector('#device-total').innerHTML = node_statuses.length;
 }
+
+export async function test_notification(){
+    const response = await query.get_node_notification();
+    const notification = await response.json();
+    
+    console.log(notification);
+    notification.forEach(element => {
+        console.log(element);
+        document.querySelector('#notification-dropdown').insertAdjacentHTML("beforeend", utils.createNotification(element));
+    });
+}
