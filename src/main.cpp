@@ -35,6 +35,7 @@ void loop() {
 // --- viewing node ---
 #ifdef NODE_TYPE_VIEWER
 #include "web_server.h"
+#include <DNSServer.h>
 
 static AsyncWebServer server(HTTP_PORT);
 unsigned long lastScreenMS      = 0;
@@ -43,6 +44,9 @@ const long fiveMinInterval      = 300000;
 const long fiveSecInterval      = 5000;
 String WiFiPassword             = "password";
 
+DNSServer dnsServer;
+#define DNS_PORT 53
+unsigned long previousMillis = 0;
 // holds the time of the last screen update; used to check if we need to update screen again
 unsigned long lastScreenUpdate = 0;
 
@@ -69,6 +73,7 @@ void setup(){
     Serial.print("Access IP Address: ");
     Serial.println(WiFi.softAPIP());  // should default to 192.168.4.1
 
+    dnsServer.start(DNS_PORT, "*", WiFi.softAPIP());
     startWebServer(&server);
 
     // run the listen function exclusively on core 0
@@ -93,6 +98,7 @@ void loop() {
     }
 
     // TODO: Add logic that prevents this from updating if there haven't been any changes
+    dnsServer.processNextRequest();
     // periodic saving
     if (currentMS - lastDBMS >= fiveMinInterval){
         if(needsPersistence){
