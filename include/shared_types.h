@@ -44,7 +44,8 @@ struct NodeRecord {
     MeshPacket lastPacket;
     char nodeName[20];
     unsigned long lastSeen;  // local timestamp
-    bool hasActiveAlert;  // global alert status for the node
+    bool hasActiveAlert;  // global alert status for the node (live status)
+    bool alertLatched;  // tracks if an alert hasn't been cleared yet
 };
 
 // packet to and from bytes

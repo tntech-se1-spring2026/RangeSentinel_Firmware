@@ -31,6 +31,9 @@ void getDatabaseFromFS();
 // decides if incoming reading constitutes an alert
 bool evaluateAlert(const SensorReading& r);
 
+// manually clear the latch for a specific node
+bool clearAlertLatch(uint8_t nodeId);
+
 // development function to wipe db and logs to start fresh
 // CAN'T THINK OF A USE CASE TO BE IN FINAL PRODUCT
 void clearAllData();

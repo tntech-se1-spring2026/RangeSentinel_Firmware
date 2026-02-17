@@ -86,6 +86,7 @@ void nodeRecordToJsonObject(const NodeRecord& record, JsonObject& obj) {
     obj["ls"] = record.lastSeen;
     obj["mId"] = record.lastPacket.messageId;
     obj["alert"] = record.hasActiveAlert;
+    obj["latched"] = record.alertLatched;
 
     JsonArray sensors = obj["sensors"].to<JsonArray>();
     // loop through readings and convert them to JSON objects
@@ -134,4 +135,5 @@ void jsonObjectToNodeRecord(const JsonObjectConst& obj, NodeRecord& record) {
     record.lastPacket.messageId = obj["mId"];
     strlcpy(record.nodeName, obj["name"] | "Unknown", sizeof(record.nodeName));
     record.hasActiveAlert = obj["alert"] | false;
+    record.alertLatched = obj["latched"] | false;
 }

@@ -40,6 +40,11 @@ void updateDatabase(MeshPacket incoming) {
         currentRecord.hasActiveAlert = foundAlert;  // store alert status
         currentRecord.lastSeen = millis();
 
+        // if there is an alert, lock the latch (user would have to clear / acknowledge alert to reset it)
+        if (foundAlert) {
+            currentRecord.alertLatched = true;
+        }
+
         // assign default name if it doesn't have one
         if (strlen(currentRecord.nodeName) == 0) {
             snprintf(currentRecord.nodeName, sizeof(currentRecord.nodeName), "Node %d", incoming.nodeId);
@@ -237,6 +242,25 @@ bool evaluateAlert(const SensorReading& r) {
         return false;
     }
 }
+
+// manually clear the latch for a specific node
+bool clearAlertLatch(uint8_t nodeId) {
+    if (nodeId >= MAX_NODES) {
+        return false;  // invalid ID
+    }
+
+    // reset latch
+    networkDatabase.at(nodeId).alertLatched = false;
+
+    // trigger backup to LittleFS
+    needsPersistence = true;
+    saveDatabaseToFS();
+
+    Serial.printf("DB: Alert latch cleared for node %d\n", nodeId);
+    return true;  // success
+
+}
+
 
 // development function to wipe db and logs to start fresh
 // CAN'T THINK OF A USE CASE TO BE IN FINAL PRODUCT

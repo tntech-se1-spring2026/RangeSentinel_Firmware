@@ -49,6 +49,23 @@ void startBackend(AsyncWebServer *server) {
 
         request->send(response);
     });
+
+    // acknowledge alerts
+    server->on("/web/ack", HTTP_POST, [](AsyncWebServerRequest *request) {
+        if (request->hasParam("id")) {
+            // cast to uint8_t instead of regular int
+            uint8_t id = (uint8_t)request->getParam("id")->value().toInt();
+            if (clearAlertLatch(id)) {
+                request->send(200, "text/plain", "Ok: Latch cleared");
+            }
+            else {
+                request->send(404, "text/plain", "Error: Invalid Node ID");
+            }
+        }
+        else {
+            request->send(400, "text/plain", "Error: Missing id parameter");
+        }
+    });
 }
 
 void startAPI(AsyncWebServer *server) {
