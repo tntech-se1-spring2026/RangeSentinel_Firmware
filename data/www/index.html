@@ -33,88 +33,15 @@
     </nav>
 
     <div class="container mt-4">
-    <h1 style="color: #fafafa; font-family: helvetica;">Status</h1>
-
-    <div class="row g-3"> <!-- First Row of 3 Cards -->
-        <!-- Card 1 -->
-        <div class="col-12 col-md-4">
-            <div class="card text-center shadow-sm">
-                <div class="card-body">
-                    <h5 class="card-title">Temperature</h5>
-                    <p class="card-value">23.5 °C</p>
-                    <p class="card-text text-muted">
-                        Last updated: 10s ago
-                    </p>
-                </div>
-            </div>
-        </div>
-        <!-- Card 2 -->
-        <div class="col-12 col-md-4">
-            <div class="card text-center shadow-sm">
-                <div class="card-body">
-                    <h5 class="card-title">Humidity</h5>
-                    <p class="card-value">56 %</p>
-                    <p class="card-text text-muted">
-                        Normal range
-                    </p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Card 3 -->
-        <div class="col-12 col-md-4">
-            <div class="card text-center shadow-sm">
-                <div class="card-body">
-                    <h5 class="card-title">Gate Sensor</h5>
-                    <p class="card-value text-success">Online</p>
-                    <p class="card-text text-muted">
-                        ESP32 connected
-                    </p>
-                </div>
-            </div>
-        </div>
-
+    <h1 style="color: #fafafa; font-family: helvetica;">Device Status</h1>
+    
+    <p style="color: #fafafa; font-family: helvetica;" id="device-total"><!-- device total --></p>
+    <div id="node-cards" class="d-flex">
+    </div>
+    
     </div> <!-- End of First Row -->
-    <div class="row g-3 mt-0"> <!-- Second Row of 2 Cards -->
-        <!-- Card 4 -->
-        <div class="col-12 col-md-4">
-            <div class="card text-center shadow-sm">
-                <div class="card-body">
-                    <h5 class="card-title">Device 1</h5>
-                    <p class="card-value text-danger">Offline</p>
-                    <p class="card-text text-muted">    
-                        Last seen: 5 mins ago
-                    </p>
-                </div>
-            </div>
-        </div>
-        <!-- Card 5 -->
-        <div class="col-12 col-md-4">
-            <div class="card text-center shadow-sm">
-                <div class="card-body">
-                    <h5 class="card-title">Device 2</h5>
-                    <p class="card-value text-success">Online</p>
-                    <p class="card-text text-muted">    
-                        Active for 2 weeks
-                    </p>
-                </div>
-            </div>
-        </div>
-        <!-- Card 6 -->
-        <div class="col-12 col-md-4">
-            <div class="card text-center shadow-sm">
-                <div class="card-body">
-                    <h5 class="card-title">Device 3</h5>
-                    <p class="card-value text-success">Online</p>
-                    <p class="card-text text-muted">    
-                        Active for 5 days
-                    </p>
-                </div>
-            </div>
-        </div>
-    </div> <!-- End of Second Row -->
-</div>
-    <button class="btn btn-primary" type="button" id="test-button">Test</button>
+    
+    </div>
     <script type="module" src="js/main.js"></script>
     <script>
     </script>
