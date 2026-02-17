@@ -18,8 +18,8 @@ bool appendToNetwork(NodeRecord newStatus){
 }
 
 // TODO: Finish this function
-void updateDatabase(MeshPacket incoming) {
-    NodeRecord& currentRecord = networkDatabase.at(incoming.nodeId);
+void updateDatabase(MeshPacket incoming, uint8_t nodeID){
+    NodeRecord& currentRecord = networkDatabase.at(nodeID);
 
     // only update if incoming is newer than what is already there
     if (incoming.messageId > currentRecord.lastPacket.messageId) {
@@ -28,7 +28,7 @@ void updateDatabase(MeshPacket incoming) {
 
         // assign default name if it doesn't have one
         if (strlen(currentRecord.nodeName) == 0) {
-            snprintf(currentRecord.nodeName, sizeof(currentRecord.nodeName), "Node %d", incoming.nodeId);
+            snprintf(currentRecord.nodeName, sizeof(currentRecord.nodeName), "Node %d", nodeID);
         }
 
         // add to history
@@ -36,10 +36,10 @@ void updateDatabase(MeshPacket incoming) {
         logHead = (logHead + 1) % MAX_LOG_ENTRIES;
 
         needsPersistence = true;
-        Serial.printf("DB: Node %d updated & logged (Msg %d)\n", incoming.nodeId, incoming.messageId);
+        Serial.printf("DB: Node %d updated & logged (Msg %d)\n", nodeID, incoming.messageId);
     }
     else {
-        Serial.printf("DB: Ignored old/duplicate message %d from node %d\n", incoming.messageId, incoming.nodeId);
+        Serial.printf("DB: Ignored old/duplicate message %d from node %d\n", incoming.messageId, nodeID);
     }
 }
 
@@ -68,7 +68,7 @@ String getEventLogAsJson() {
         // handle wrapping around circular buffer and avoid negative indices
         int index = (logHead - 1 - i + MAX_LOG_ENTRIES) % MAX_LOG_ENTRIES;
         const NodeRecord& entry = eventLog[index];
-        if (entry.lastPacket.nodeId > 0) {
+        if (entry.nodeID > 0) {
             JsonObject obj = root.add<JsonObject>();
             nodeRecordToJsonObject(entry, obj);
         }
@@ -92,7 +92,7 @@ bool saveDatabaseToFS() {
         JsonArray root = doc.to<JsonArray>();
 
         for (const auto& record : networkDatabase) {
-            if (record.lastPacket.nodeId > 0) {   // only save active nodes
+            if (record.nodeID > 0) {   // only save active nodes
                 JsonObject obj = root.add<JsonObject>();
                 nodeRecordToJsonObject(record, obj);
             }
@@ -115,7 +115,7 @@ bool saveDatabaseToFS() {
         JsonArray logs = logDoc["data"].to<JsonArray>();  // add label since we have head as well
 
         for (const auto& entry : eventLog) {
-            if (entry.lastPacket.nodeId > 0) {
+            if (entry.nodeID > 0) {
                 JsonObject obj = logs.add<JsonObject>();
                 nodeRecordToJsonObject(entry, obj);
             }

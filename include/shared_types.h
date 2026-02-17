@@ -8,37 +8,39 @@
 
 // what kind of data?
 typedef enum {
-    SENSOR_TYPE_NONE = 0x00,
-    SENSOR_TYPE_DOOR = 0x01,
-    SENSOR_TYPE_MOTION = 0x02,
-    SENSOR_TYPE_BATTERY = 0x03,
-    SENSOR_TYPE_ERROR = 0xFF
-} SensorType;
+    OTHER               = 0x00, 
+    DOOR_SENSOR         = 0x01, // sends open as bool
+    MOTION_SENSOR       = 0x02, // sends motion as bool
+    BATTERY_SENSOR      = 0x03, // sends voltage as float
+    ASSIGNMENT          = 0x04, // sends nodeID as byte
+    REQUEST_TO_ASSIGN   = 0x05, // sends MAC as byte
+    SENSOR_TYPE_ERROR   = 0xFF
+} DataType;
 
 // payload holder
 typedef union {
     bool asBool;
     float asFloat;
     uint8_t asByte;
-} SensorData;
+} Data;
 
 // single sensor event
-struct SensorReading {
+struct Reading {
     uint8_t sensorIndex;    // TODO: REMOVE
-    SensorType type;        // format identifier
-    SensorData payload;     // actual data
+    DataType type;        // format identifier
+    Data payload;     // actual data
 };
 
 // what is sent over LoRa
 struct MeshPacket {
-    uint8_t nodeId;
     uint32_t messageId;
     uint8_t readingCount;
-    SensorReading readings[MAX_SENSORS_PER_PACKET];
+    Reading readings[MAX_SENSORS_PER_PACKET];
 };
 
 // metadata not sent over radio (will be stored in viewing node for comparison)
 struct NodeRecord {
+    uint8_t nodeID;
     MeshPacket lastPacket;
     char nodeName[20];
     uint8_t MACAddress[6];
@@ -78,4 +80,10 @@ void strMACtoRaw(const char* MACstr, uint8_t* MACRaw);
 /// @param MACRaw Pointer to the 6-byte array.
 /// @return A pointer to a static buffer containing the string.
 char* rawMACtoStr(uint8_t* MACRaw);
+
+/// @brief this function returns the first reading of a particular type in the readings array.
+/// @param readings the array of readings in the mesh packet
+/// @param type the desired type of reading to be returned
+/// @return returns the reading of the type passed. If not found, returns nullptr
+Reading* getReadingOfType(Reading (&readings)[4], DataType type);
 #endif

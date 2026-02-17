@@ -147,7 +147,30 @@ void receiverListen(void* pvParameters){
         // recvfromAck returns true if addressed for us, if not returns false & forwards to appropriate node.
         if (manager->recvfromAck(incoming, &len, &fromAddress)){ // true if a message is heard
             Serial.println("Message received from " + String(fromAddress));
-            
+
+            // translate incoming intp a readable mesh packet
+            MeshPacket incomingPacket;
+            deserializePacket(incoming, len, incomingPacket);
+
+            if(fromAddress == 0){
+                // This is a new node that needs assigned
+                // Check if it is sending a request to be assigned
+                if(Reading* req2Asn = getReadingOfType(incomingPacket.readings, REQUEST_TO_ASSIGN)){
+                    // check if it's MAC exists in our DB
+                        // if yes
+                            // This scenario would mean the node is assigned for us, but has forgotten its ID
+                            // send/assign it it's known nodeID
+                        // if no
+                            // This scenario would mean the node is new and wants to be assigned
+                            // eventually we will allow the user to accept the node to be added, for now we will just add it
+                            
+                }else{
+                    // This scenario would mean the node thinks it is assigned, but still has nodeID 0. Or a serialization error, or a node that isn't ours claiming to be 0
+                    // TODO: Write handling logic for this
+                }
+            }else{
+
+            }
         }
         
         vTaskDelay(1 / portTICK_PERIOD_MS); // FEED THE WATCHDOG: This 1ms pause is mandatory on Core 0

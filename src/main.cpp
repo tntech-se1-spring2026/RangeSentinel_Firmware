@@ -55,27 +55,18 @@ void setup(){
 
     setupScreen();
 
-    // initialize the mutex to protect db shared btwn cores
-    meshMutex = xSemaphoreCreateMutex();
-    
-    setupRadio(nodeID);
-
     // start LittleFS. Halt if failed
     if (!LittleFS.begin(true)){
         Serial.println("An error occurred while mounting LittleFS");
         while(true);
     }
-
     getDatabaseFromFS();
 
-    // start access point
-    WiFi.softAP("Range-Sentinel-Gateway", WiFiPassword); // (SSID, Password)
-    Serial.print("Access IP Address: ");
-    Serial.println(WiFi.softAPIP());  // should default to 192.168.4.1
-
-    dnsServer.start(DNS_PORT, "*", WiFi.softAPIP());
-    startWebServer(&server);
-
+    // initialize the mutex to protect db shared btwn cores
+    meshMutex = xSemaphoreCreateMutex();
+    
+    nodeID = 1; // hard set the nodeID of the viewing node to one
+    setupRadio(nodeID);
     // run the listen function exclusively on core 0
     xTaskCreatePinnedToCore(
         receiverListen,
@@ -86,6 +77,14 @@ void setup(){
         NULL,
         0
     );
+
+    // start access point
+    WiFi.softAP("Range-Sentinel-Gateway", WiFiPassword); // (SSID, Password)
+    Serial.print("Access IP Address: ");
+    Serial.println(WiFi.softAPIP());  // should default to 192.168.4.1
+
+    dnsServer.start(DNS_PORT, "*", WiFi.softAPIP());
+    startWebServer(&server);
 }
 
 void loop() {
@@ -97,8 +96,9 @@ void loop() {
         lastScreenUpdate = millis();
     }
 
-    // TODO: Add logic that prevents this from updating if there haven't been any changes
     dnsServer.processNextRequest();
+
+    // TODO: Add logic that prevents this from updating if there haven't been any changes
     // periodic saving
     if (currentMS - lastDBMS >= fiveMinInterval){
         if(needsPersistence){

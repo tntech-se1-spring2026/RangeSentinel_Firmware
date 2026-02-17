@@ -15,19 +15,19 @@ size_t serializePacket(const MeshPacket& packet, uint8_t* buffer, size_t maxLen)
     for (int i = 0; i < packet.readingCount; i++) {
         if (cursor + 6 > maxLen) break;
 
-        SensorReading r = packet.readings[i];  // get current reading struct
+        Reading r = packet.readings[i];  // get current reading struct
         buffer[cursor++] = r.sensorIndex;
         buffer[cursor++] = (uint8_t)r.type;
 
         // write actual data
         switch (r.type) {
             // fall down to error case since they would be the same logic
-            case SENSOR_TYPE_DOOR:
-            case SENSOR_TYPE_MOTION:
+            case DOOR_SENSOR:
+            case MOTION_SENSOR:
             case SENSOR_TYPE_ERROR:
                 buffer[cursor++] = r.payload.asByte;
                 break;
-            case SENSOR_TYPE_BATTERY:
+            case BATTERY_SENSOR:
                 memcpy(&buffer[cursor], &r.payload.asFloat, 4);
                 cursor += 4;
                 break;
@@ -136,4 +136,13 @@ char* rawMACtoStr(uint8_t* MACRaw) {
             MACRaw[0], MACRaw[1], MACRaw[2], 
             MACRaw[3], MACRaw[4], MACRaw[5]);
     return buffer;
+}
+
+Reading* getReadingOfType(Reading (&readings)[4], DataType type){
+    for (Reading& reading : readings) {
+        if (reading.type == type) {
+            return &reading;   // found
+        }
+    }
+    return nullptr;            // not found
 }
