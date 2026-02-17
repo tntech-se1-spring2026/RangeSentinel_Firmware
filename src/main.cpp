@@ -9,7 +9,7 @@ unsigned long currentMS         = 0;
 unsigned long lastRSMS          = 0;
 const long fiftyMSInterval      = 50;
 void setup() {
-    setupRadio();
+    setupRadio(0);
     // TODO: Add logic to decide what kind of sensor node
     pinMode(RS_PIN, INPUT_PULLUP); // set the reed switch's pin's mode
 }
@@ -20,31 +20,23 @@ void loop() {
        The loop() needs to run as fast as possible. If you put a delay() 
        at the end of the loop, our node will be "deaf" during that delay.
     */
-    currentMillis = millis();
-    // TODO: create sensor node logic
-    switch (nodeID){
-        case 0: // if our node is unassigned
-            /* code */
-            manager.setThisAddress(0);
-        break;
-        default: // if our node has been assigned
-            listenFunction();
-            // delay prevents bouncing
-            if(currentMS - lastRSMS > fiftyMSInterval){
-                reedSwitchLogic();
-            }
-        break;
-   }
+   // TODO: create sensor node logic
+    currentMS = millis();
+    
+    sensorListen();
+    
+    // delay prevents bouncing
+    // if(currentMS - lastRSMS > fiftyMSInterval){
+    //     reedSwitchLogic();
+    // }
 }
 #endif
 
 // --- viewing node ---
 #ifdef NODE_TYPE_VIEWER
+#include "web_server.h"
 
-// standard HTTP port
-#define HTTP_PORT 80
 static AsyncWebServer server(HTTP_PORT);
-
 unsigned long lastScreenMS      = 0;
 unsigned long lastDBMS          = 0;
 const long fiveMinInterval      = 300000;
@@ -61,21 +53,8 @@ void setup(){
 
     // initialize the mutex to protect db shared btwn cores
     meshMutex = xSemaphoreCreateMutex();
-
-    nodeID = 1; // hardcoded for receiver node
     
     setupRadio(nodeID);
-
-    // create the nodeStatus for our receiver
-    NodeStatus receiverStatus = {};
-    receiverStatus.nodeId = nodeID;
-    receiverStatus.messageId = 0;
-    receiverStatus.batteryVoltage = getBatteryVoltage();
-    strlcpy(receiverStatus.nodeName, "receiver", sizeof(receiverStatus.nodeName));
-    WiFi.macAddress(receiverStatus.nodeMACAddress);
-
-    // append the receiver status; ignore the return because this is the first append.
-    (void)appendToNetwork(receiverStatus);
 
     // start LittleFS. Halt if failed
     if (!LittleFS.begin(true)){
@@ -106,9 +85,6 @@ void setup(){
 
 void loop() {
     currentMS = millis();
-
-    // handle webserver client
-    server.handleClient();
     
     // update OLED screen
     if(currentMS - lastScreenUpdate > fiveSecInterval){ // if it has been 5 sec since the last screen update

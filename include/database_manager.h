@@ -20,35 +20,35 @@
 #define MAX_NODES 10
 #define MAX_LOG_ENTRIES 50
 
-// officially declared in main.cpp
 extern std::array<NodeRecord, MAX_NODES> networkDatabase;
 extern std::array<NodeRecord, MAX_LOG_ENTRIES> eventLog;
 extern int logHead;
 extern bool needsPersistence;// global flag to track if we need to add to persistent memory
 extern size_t numNodesInNetwork;
+extern SemaphoreHandle_t meshMutex; // Mutex prevents cores from looking at shared data simultaneously
 
-// Mutex prevents cores from looking at shared data simultaneously
-extern SemaphoreHandle_t meshMutex;
+/// @brief function used to add a new node to the database; returns true if it succeeded, else returns false.
+/// @param newStatus takes the newNode to append
+/// @return returns true if succeeded
+bool appendToNetwork(NodeRecord newStatus);
 
-// function used to add a new node to the database; returns true if it succeeded, else returns false.
-bool appendToNetwork(NodeStatus newStatus);
-
-// helper function to update database
+/// @brief this function updates our database with the most current incoming packet
+/// @param incoming pass an incoming packet from a known node
 void updateDatabase(MeshPacket incoming);
 
-// converts entire active database to JSON array
+/// @brief converts entire active database to JSON array
 String getDatabaseAsJson();
 
-// converts entire history log to JSON array
+/// @brief converts entire history log to JSON array
+/// @return 
 String getEventLogAsJson();
 
-// saves database to LittleFS
+/// @brief This function saves the database to the LittleFS, allowing database persistence.
 bool saveDatabaseToFS();
 
-// get database from LittleFS
+/// @brief This function gets the database from the LittleFS
 void getDatabaseFromFS();
 
-// development function to wipe db and logs to start fresh
-// CAN'T THINK OF A USE CASE TO BE IN FINAL PRODUCT
+/// @brief Wipes the databases (networkDatabase, eventLog, & LittleFS). This will be used for when the user makes a subtractive change to their network.
 void clearAllData();
 #endif

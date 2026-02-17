@@ -1,14 +1,13 @@
 #include "database_manager.h"
 
-std::array<NodeStatus, MAX_NODES> networkDatabase   = {}; // live view
-std::array<NodeStatus, MAX_LOG_ENTRIES> eventLog    = {}; // circular buffer history 
+std::array<NodeRecord, MAX_NODES> networkDatabase   = {}; // live view
+std::array<NodeRecord, MAX_LOG_ENTRIES> eventLog    = {}; // circular buffer history 
 int logHead                                         = 0;
 bool needsPersistence                               = false;
 size_t numNodesInNetwork                            = 0;
 SemaphoreHandle_t meshMutex                         = NULL;
 
-// function used to add a new node to the database; returns true if it succeeded, else returns false.
-bool appendToNetwork(NodeStatus newStatus){
+bool appendToNetwork(NodeRecord newStatus){
     if(numNodesInNetwork < MAX_NODES){
         networkDatabase[numNodesInNetwork] = newStatus;
         numNodesInNetwork++;
@@ -18,10 +17,8 @@ bool appendToNetwork(NodeStatus newStatus){
     }
 }
 
-// helper function to update database
-void updateDatabase(NodeStatus incoming){
-    incoming.lastSeen = millis();   // update timestamp
-
+// TODO: Finish this function
+void updateDatabase(MeshPacket incoming) {
     NodeRecord& currentRecord = networkDatabase.at(incoming.nodeId);
 
     // only update if incoming is newer than what is already there
@@ -46,7 +43,6 @@ void updateDatabase(NodeStatus incoming){
     }
 }
 
-// converts entire active database to JSON array
 String getDatabaseAsJson() {
     JsonDocument doc;
     JsonArray root = doc.to<JsonArray>();
@@ -63,7 +59,6 @@ String getDatabaseAsJson() {
     return output;
 }
 
-// converts circular event log to json
 String getEventLogAsJson() {
     JsonDocument doc;
     JsonArray root = doc.to<JsonArray>();
@@ -84,7 +79,6 @@ String getEventLogAsJson() {
     return output;
 }
 
-// saves database to LittleFS
 bool saveDatabaseToFS() {
     if (!needsPersistence) {
         // nothing changed so skip
@@ -141,7 +135,6 @@ bool saveDatabaseToFS() {
     return true;
 }
 
-// retrieves data from backup in LittleFS
 void getDatabaseFromFS() {
     // restore current network status
     if (LittleFS.exists("/db_backup.json")) {
@@ -174,7 +167,7 @@ void getDatabaseFromFS() {
             JsonDocument logDoc;
             DeserializationError error = deserializeJson(logDoc, logFile);
             if (!error) {
-                logHead = logDoc["head"] | 0;   // so we know where to resume. defualt to 0
+                logHead = logDoc["head"] | 0;   // so we know where to resume. default to 0
                 JsonArray logs = logDoc["data"].as<JsonArray>();
                 int i = 0;
                 for (JsonObject obj : logs) {
@@ -202,8 +195,6 @@ void getDatabaseFromFS() {
     }
 }
 
-// development function to wipe db and logs to start fresh
-// CAN'T THINK OF A USE CASE TO BE IN FINAL PRODUCT
 void clearAllData() {
     LittleFS.remove("/db_backup.json");
     LittleFS.remove("/history_backup.json");

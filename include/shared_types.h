@@ -24,9 +24,9 @@ typedef union {
 
 // single sensor event
 struct SensorReading {
-    uint8_t sensorIndex;  // which sensor
-    SensorType type;  // format identifier
-    SensorData payload;  // actual data
+    uint8_t sensorIndex;    // TODO: REMOVE
+    SensorType type;        // format identifier
+    SensorData payload;     // actual data
 };
 
 // what is sent over LoRa
@@ -41,17 +41,41 @@ struct MeshPacket {
 struct NodeRecord {
     MeshPacket lastPacket;
     char nodeName[20];
+    uint8_t MACAddress[6];
     unsigned long lastSeen;  // local timestamp
 };
 
-// packet to and from bytes
+/// @brief 
+/// @param packet 
+/// @param buffer 
+/// @param maxLen 
+/// @return 
 size_t serializePacket(const MeshPacket& packet, uint8_t* buffer, size_t maxLen);
+
+/// @brief rebuilds the C++ struct from LoRa bytes
+/// @param buffer
+/// @param len
+/// @param packet
+/// @return
 bool deserializePacket(const uint8_t* buffer, size_t len, MeshPacket& packet);
 
-// fill existing JsonObject with record data
+/// @brief This function fills the JsonObject with record data...
+/// @param record 
+/// @param obj 
 void nodeRecordToJsonObject(const NodeRecord& record, JsonObject& obj);
 
-// fill existingrecord from a JsonObject (aka, backup)
+/// @brief fill existing record from a JsonObject (aka, backup)
+/// @param obj 
+/// @param record 
 void jsonObjectToNodeRecord(const JsonObjectConst& obj, NodeRecord& record);
 
+/// @brief Converts a MAC address string (e.g. "AA:BB:CC:11:22:33") into a 6-byte array.
+/// @param MACstr The input string.
+/// @param MACRaw A pointer to a uint8_t[6] array to store the result.
+void strMACtoRaw(const char* MACstr, uint8_t* MACRaw);
+
+/// @brief Converts a 6-byte MAC array into a formatted string.
+/// @param MACRaw Pointer to the 6-byte array.
+/// @return A pointer to a static buffer containing the string.
+char* rawMACtoStr(uint8_t* MACRaw);
 #endif

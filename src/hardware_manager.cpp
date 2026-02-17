@@ -2,63 +2,21 @@
 #include "shared_types.h"
 #include "database_manager.h"
 
+#pragma region VARIABLES
 // --- RADIO COMM ---
 RH_RF95 rf95(RFM95_CS, RFM95_INT); // radio driver
-RHMesh* manager; // obj to manage mesh comm routing.
+RHMesh* manager;
 
+// --- SCREEN ---
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
-
-int prevRSState = -1; // Set to -1 so it prints the initial state once
 int brightness = 255;
 
-// TODO: Finish this function
-void assignNewNodeID(const char* macStr){
-    // Convert string "AA:BB..." to raw bytes
-    uint8_t tempMac[6];
-    sscanf(macStr, "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx", 
-           &tempMac[0], &tempMac[1], &tempMac[2], 
-           &tempMac[3], &tempMac[4], &tempMac[5]);
+// --- DOOR SENSOR ---
+int prevRSState = -1; // Set to -1 so it prints the initial state once
+#pragma endregion
 
-    // Check if MAC exists in networkDatabase
-    uint8_t assignedID = 0;
-    for(NodeStatus &node : networkDatabase){
-        if(memcmp(node.nodeMACAddress, tempMac, 6) == 0){
-            assignedID = node.nodeId;
-            break;
-        }
-    }
-
-    // If not, find next ID and appendToNetwork
-
-    // Send response back to Node 0 via manager->sendtoWait
-}
-
-void setupRadio(uint8_t nodeID){
-    // Manual reset of the LoRa radio to ensure a clean state
-    Serial.println("Reseting radio");
-    pinMode(RFM95_RST, OUTPUT);
-    digitalWrite(RFM95_RST, LOW);  // Pull low to reset
-    delay(10); 
-    digitalWrite(RFM95_RST, HIGH); // Pull high to operate
-    delay(10);
-
-    // Initialize the Mesh Manager & LoRa driver (rf95)
-    manager = new RHMesh(rf95, nodeID);
-    if (!manager->init()){
-        Serial.println("Mesh init failed! Check wiring.");
-        while(true); // Halt if hardware isn't responding
-    }
-
-    // set Radio frequency
-    if (!rf95.setFrequency(915.0)){
-        Serial.println("setFrequency failed");
-    }
-
-    // TX Power: 5 to 23 dBm. 23 is max power. 
-    // false = don't use RFO pin, use PA_BOOST (standard for SX1276)
-    rf95.setTxPower(5, false);
-}
-
+#pragma region FUNCTIONS
+// --- SCREEN ---
 void setupScreen(){
     Wire.begin(OLED_SDA, OLED_SCL); 
     if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { 
@@ -100,23 +58,6 @@ void setupScreen(){
     display.display();
     
     analogReadResolution(12); // ESP32 ADC is 12-bit (0-4095)
-}
-
-float getBatteryVoltage(){
-    #define ADC_PIN 35 // Battery is hardwired to GPIO 35 on our T3_v1.6.1 board
-
-    uint16_t raw = analogRead(ADC_PIN); // Read Raw ADC value
-
-    // Convert and return voltage
-    // The board uses a divider that halves the voltage, so we multiply by 2.
-    // 3.3V / 4095 units * 2 (divider) * 1.1 (typical ESP32 calibration)
-    return ((raw / 4095.0) * 3.3 * 2.0 * 1.1);
-}
-
-int getBatteryPercentage(){
-    // Li-ion range: 4.2V (100%) down to 3.2V (0%)
-    int percentage = (int)((getBatteryVoltage() - 3.2) / (4.2 - 3.2) * 100);
-    return(constrain(percentage, 0, 100));
 }
 
 void updateScreen() {
@@ -170,75 +111,49 @@ void updateScreen() {
     display.display();
 }
 
+// --- RADIO ---
+void setupRadio(uint8_t nodeID){
+    // Manual reset of the LoRa radio to ensure a clean state
+    Serial.println("Reseting radio");
+    pinMode(RFM95_RST, OUTPUT);
+    digitalWrite(RFM95_RST, LOW);  // Pull low to reset
+    delay(10); 
+    digitalWrite(RFM95_RST, HIGH); // Pull high to operate
+    delay(10);
+
+    // Initialize the Mesh Manager & LoRa driver (rf95)
+    manager = new RHMesh(rf95, nodeID);
+    if (!manager->init()){
+        Serial.println("Mesh init failed! Check wiring.");
+        while(true); // Halt if hardware isn't responding
+    }
+
+    // set Radio frequency
+    if (!rf95.setFrequency(915.0)){
+        Serial.println("setFrequency failed");
+    }
+
+    // TX Power: 5 to 23 dBm. 23 is max power. 
+    // false = don't use RFO pin, use PA_BOOST (standard for SX1276)
+    rf95.setTxPower(23, false);
+}
+
 void receiverListen(void* pvParameters){
     while(true){
         uint8_t incoming[RH_MESH_MAX_MESSAGE_LEN];
         uint8_t len = sizeof(incoming);
         uint8_t fromAddress;
-
-        // Listen for mesh traffic
-        if (manager->recvfromAck(incoming, &len, &fromAddress)) {
+        
+        // recvfromAck returns true if addressed for us, if not returns false & forwards to appropriate node.
+        if (manager->recvfromAck(incoming, &len, &fromAddress)){ // true if a message is heard
             Serial.println("Message received from " + String(fromAddress));
-            incoming[len] = '\0';
             
-            // LOCK
-            if (xSemaphoreTake(meshMutex, portMAX_DELAY)) {
-                // parse incoming json
-                JsonDocument incomingDoc;
-                DeserializationError err = deserializeJson(incomingDoc, incoming);
-
-                if(err){ // if failed
-                    Serial.print("JSON parse failed: ");
-                    Serial.println(err.c_str());
-                
-                }else{
-                    if(fromAddress == 0){ // if this is a new/unassigned node
-                        const char* incomingMac = incomingDoc["mac"] | ""; 
-                        if (strlen(incomingMac) > 0) {
-                            assignNewNodeID(incomingMac);
-                        }
-                    }else{ // already assigned node
-                        bool found = false;
-                        for(NodeStatus &node : networkDatabase){ // check each node in db to see if matches
-                            if(node.nodeId == fromAddress){ // if node matches, update our db
-                                // grab mac as string
-                                const char* incomingMACString = incomingDoc["mac"] | ""; 
-                                
-                                // convert string to raw bytes
-                                uint8_t incomingMACRaw[6];
-                                sscanf(incomingMACString, "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx", 
-                                    &incomingMACRaw[0], &incomingMACRaw[1], &incomingMACRaw[2], 
-                                    &incomingMACRaw[3], &incomingMACRaw[4], &incomingMACRaw[5]);
-
-                                // check if matches
-                                if(memcmp(node.nodeMACAddress, incomingMACRaw, 6) == 0){
-                                    found = true;
-                                    // update db
-                                    node.messageId = incomingDoc["mId"].as<long>();
-                                    node.batteryVoltage = incomingDoc["batt"].as<float>();
-                                    node.motionDetected = incomingDoc["motion"].as<bool>();
-                                    node.doorOpen = incomingDoc["door"].as<bool>();
-                                    strlcpy(node.nodeName, incomingDoc["name"].as<const char*>(), sizeof(node.nodeName));
-                                    // exit loop
-                                    break;
-                                }else{
-                                    // TODO: Decide how to handle an incoming message with an existing ID, but without a matching MAC
-                                }
-                            }
-                        }
-                        if(!found){ // if our sending node wasn't found in our db
-                            Serial.println("Warning: Unrecognized node (ID:" + (String)fromAddress + ") attempted communication.");
-                        }       
-                    }
-                }
-            }
-            xSemaphoreGive(meshMutex); // UNLOCK
         }
-        // FEED THE WATCHDOG: This 1ms pause is mandatory on Core 0
-        vTaskDelay(1 / portTICK_PERIOD_MS);
+        
+        vTaskDelay(1 / portTICK_PERIOD_MS); // FEED THE WATCHDOG: This 1ms pause is mandatory on Core 0
     }
 }
-
+ 
 void sensorListen(){ // Must be called constantly to process incoming packets
     uint8_t incoming[RH_MESH_MAX_MESSAGE_LEN]; // buffer to hold the raw bytes of any incoming message.
     uint8_t len = sizeof(incoming);
@@ -247,37 +162,26 @@ void sensorListen(){ // Must be called constantly to process incoming packets
     // recvfromAck returns true if addressed for us, if not returns false & forwards to appropriate node.
     if (manager->recvfromAck(incoming, &len, &fromAddress)){
         Serial.println("Message received from " + String(fromAddress));
-        incoming[len] = '\0'; // turn the raw byte array into a String
 
-        // store incoming message in json format
-        JsonDocument incomingDoc;
-        DeserializationError err = deserializeJson(incomingDoc, incoming);
-
-        if(err){
-            Serial.print("JSON Parse failed: ");
-            Serial.println(err.c_str());
-        }else{
-            bool found = false;
-            for(NodeStatus &node : networkDatabase){ // check each node
-                if(node.nodeId == fromAddress){ // if node matches, update our db
-                    found = true;
-                    // update db
-                    node.messageId = incomingDoc["mId"].as<long>();
-                    node.batteryVoltage = incomingDoc["batt"].as<long>();
-                    node.motionDetected = incomingDoc["motion"].as<bool>();
-                    node.doorOpen = incomingDoc["door"].as<bool>();
-                    strlcpy(node.nodeName, incomingDoc["name"].as<const char*>(), sizeof(node.nodeName));
-
-                    // exit loop
-                    break;
-                }
-            }
-            if(!found){ // if our sending node wasn't found in our db
-                // add new node logic maybe? need to think this out more
-                Serial.println("Sending node not found in db");
-            }
-        }
     }
+}
+
+// --- BATTERY ---
+float getBatteryVoltage(){
+    #define ADC_PIN 35 // Battery is hardwired to GPIO 35 on our T3_v1.6.1 board
+
+    uint16_t raw = analogRead(ADC_PIN); // Read Raw ADC value
+
+    // Convert and return voltage
+    // The board uses a divider that halves the voltage, so we multiply by 2.
+    // 3.3V / 4095 units * 2 (divider) * 1.1 (typical ESP32 calibration)
+    return ((raw / 4095.0) * 3.3 * 2.0 * 1.1);
+}
+
+int getBatteryPercentage(){
+    // Li-ion range: 4.2V (100%) down to 3.2V (0%)
+    int percentage = (int)((getBatteryVoltage() - 3.2) / (4.2 - 3.2) * 100);
+    return(constrain(percentage, 0, 100));
 }
 
 void reedSwitchLogic(){
@@ -297,3 +201,4 @@ void reedSwitchLogic(){
         prevRSState = currentRSState;
     }
 }
+#pragma endregion

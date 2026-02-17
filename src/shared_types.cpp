@@ -1,6 +1,5 @@
 #include "shared_types.h"
 
-// squash struct into byte array for LoRa transmission
 size_t serializePacket(const MeshPacket& packet, uint8_t* buffer, size_t maxLen) {
     size_t cursor = 0;  // track where we are writing to in byte array
     // need at least 6 bytes for header (NodeID[1] _ MessageID[4] + Count[1])
@@ -38,7 +37,6 @@ size_t serializePacket(const MeshPacket& packet, uint8_t* buffer, size_t maxLen)
     return cursor;  // total number of bytes written, needed by LoRa
 }
 
-// rebuilds the C++ struct from LoRa bytes
 bool deserializePacket(const uint8_t* buffer, size_t len, MeshPacket& packet) {
     size_t cursor = 0;
     if (len < 6) return false;
@@ -76,8 +74,6 @@ bool deserializePacket(const uint8_t* buffer, size_t len, MeshPacket& packet) {
     return true;  // packet successfully parsed
 }
 
-
-// json conversion
 void nodeRecordToJsonObject(const NodeRecord& record, JsonObject& obj) {
     // add meta data to json
     obj["id"] = record.lastPacket.nodeId;
@@ -95,7 +91,7 @@ void nodeRecordToJsonObject(const NodeRecord& record, JsonObject& obj) {
         // add sensor index
         s["idx"] = r.sensorIndex;
 
-        // convert enum to humman readable string
+        // convert enum to human readable string
         switch (r.type) {
             case SENSOR_TYPE_DOOR:
                 s["type"] = "door";
@@ -120,11 +116,24 @@ void nodeRecordToJsonObject(const NodeRecord& record, JsonObject& obj) {
     }
 }
 
-// fill JSON backup into record
 void jsonObjectToNodeRecord(const JsonObjectConst& obj, NodeRecord& record) {
     // restore meta data
     record.lastPacket.nodeId = obj["id"];
     record.lastSeen = obj["ls"];
     record.lastPacket.messageId = obj["mId"];
     strlcpy(record.nodeName, obj["name"] | "Unknown", sizeof(record.nodeName));
+}
+
+void strMACtoRaw(const char* MACstr, uint8_t* MACRaw) {
+    sscanf(MACstr, "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx", 
+           &MACRaw[0], &MACRaw[1], &MACRaw[2], 
+           &MACRaw[3], &MACRaw[4], &MACRaw[5]);
+}
+
+char* rawMACtoStr(uint8_t* MACRaw) {
+    static char buffer[18]; // "XX:XX:XX:XX:XX:XX\0" is 18 chars
+    snprintf(buffer, sizeof(buffer), "%02X:%02X:%02X:%02X:%02X:%02X",
+            MACRaw[0], MACRaw[1], MACRaw[2], 
+            MACRaw[3], MACRaw[4], MACRaw[5]);
+    return buffer;
 }

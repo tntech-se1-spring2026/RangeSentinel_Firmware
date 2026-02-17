@@ -3,7 +3,6 @@
 #include "web_server.h"
 
 void startWebServer(AsyncWebServer *server) {
-
     startBackend(server);
     startFileServer(server);
     startAPI(server);
