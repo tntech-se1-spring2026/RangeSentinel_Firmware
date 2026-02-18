@@ -20,6 +20,7 @@
 // radio
 extern RH_RF95 rf95;
 extern RHMesh* manager;
+extern double messagesSent;
 // screen
 extern Adafruit_SSD1306 display;
 extern int brightness;
@@ -46,20 +47,22 @@ void setupRadio(uint8_t nodeID);
 /// @param pvParameters parameters for running on its own core.
 void receiverListen(void* pvParameters);
 
-/// @brief
+/// @brief listens for and handles incoming packets from the network. Must be called constantly to process incoming packets
 void sensorListen();
 
+void assignNodeID(uint8_t desiredID, uint8_t* nodeMAC);
+
 // --- BATTERY ---
-/// @brief
-/// @returns
+/// @brief calculates the battery's current voltage
+/// @returns returns the battery's current voltage
 float getBatteryVoltage();
 
-/// @brief
-/// @returns
+/// @brief calculates the battery's current percentage from the voltage 
+/// @returns returns the battery's current percentage
 int getBatteryPercentage();
 
 // --- REED SWITCH (DOOR SENSOR) ---
-/// @brief
+/// @brief NOT FINISHED; CURRENTLY JUST PRINTS OUT WHEN OPEN/CLOSED
 void reedSwitchLogic();
 #pragma endregion
 #endif
