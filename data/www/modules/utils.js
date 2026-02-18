@@ -19,16 +19,50 @@ export function create_card(node_status) {
         trigger = "Normal"
     }
     return `
-    <div class="col-md-4">
-        <div style="width: 100%; background-color: ${bg_color};" class="card text-center shadow-sm m-3">
-            <div class="card-body">
-                <img style="width: 50px;" src="img/memory.svg" alt="device"></img>
-                <h2>${node_status.name}</h2>
-                <h2 style="${trigger_css}">${trigger}</h2>
-                <img class="mt-2" style="width: 30px;" src="${bat_icon}" alt="device"></img>
+    <div class="col-md-4 justify-content-center d-flex">
+            <!-- Implementation of user-context node card -->
+            <div class="card w-auto text-center me-3">
+                <div class="card-header">
+                    <h5 class="float-start">${node_status.name}</h5>
+                    <img class="w-25 h-25 img-fluid float-end ms-3" src="/img/edit.svg" alt="Edit Device Name" />
+                    <p class="chosenFont id="${node_status.id}" style="display: none;">${node_status.id}</p> <!-- hidden element to store node ID for later use -->
+                </div>
+                <div class="card-body">
+                    <img width="40em" src="/img/door_front.svg" alt="Sensor Type: Gate" />
+                    <hr class="mb-4" />
+                    <h3>Closed</h3>
+                </div>
+                <div class="card-footer text-muted d-flex align-items-center">
+                    <span>
+                        <img style="color: black" src="${bat_icon}" alt="Battery Level:" />
+                        <em class="ms-1">97%</em>
+                    </span>
+                    <em class="last-seen ms-3 mt-2">2 days ago</em>
+                </div>
             </div>
-        </div>
-     </div>
+
+            <!-- Implementation of user-context node card (WITH ALERT)-->
+            <div id="${node_status.id}" class="card w-auto text-center me-3 bg-warning">
+                <div class="card-header">
+                    <h5 class="float-start">${node_status.name}</h5>
+                    <img class="w-25 h-25 img-fluid float-end ms-3" src="/img/edit.svg" alt="Edit Device Name" />
+                    <p class="chosenFont" style="display: none;">${node_status.id}</p> <!-- hidden element to store node ID for later use -->
+                    <button class="alert-clear btn btn-sm float-end" style="background-color: #4a4a4a; border: none; color: white;">Clear</button>
+                </div>
+                <div class="card-body">
+                    <img width="40em" src="/img/door_open.svg" alt="Sensor Type: Gate" />
+                    <hr class="mb-4" />
+                    <h3 class="text-danger">Open</h3>
+                </div>
+                <div class="card-footer text-muted d-flex align-items-center">
+                    <span>
+                        <img style="color: black" src="${bat_icon}" alt="Battery Level:" />
+                        <em class="ms-1">97%</em>
+                    </span>
+                    <em class="last-seen ms-3 mt-2">2 days ago</em>
+                </div>
+            </div>
+    </div>
     `
 }
 
