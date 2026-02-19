@@ -12,7 +12,8 @@ size_t serializePacket(const MeshPacket& packet, uint8_t* buffer, size_t maxLen)
 
     // loop through every sensor in the packet
     for (int i = 0; i < packet.readingCount; i++) {
-        if (cursor + 6 > maxLen) break;
+        // max reading size is 7  bytes (1 for type + 6 for MAC)
+        if (cursor + 7 > maxLen) break;
 
         Reading r = packet.readings[i];  // get current reading struct
         //buffer[cursor++] = r.sensorIndex;
@@ -21,15 +22,25 @@ size_t serializePacket(const MeshPacket& packet, uint8_t* buffer, size_t maxLen)
         // write actual data
         switch (r.type) {
             // fall down to error case since they would be the same logic
+            // 1 byte
             case DOOR_SENSOR:
             case MOTION_SENSOR:
+            case ASSIGNMENT_ID:
             case SENSOR_TYPE_ERROR:
                 buffer[cursor++] = r.payload.asByte;
                 break;
+            // 4 bytes
             case BATTERY_SENSOR:
                 memcpy(&buffer[cursor], &r.payload.asFloat, 4);
                 cursor += 4;
                 break;
+            // 6 bytes
+            case ASSIGNMENT_MAC:
+            case REQUEST_TO_ASSIGN:
+                memcpy(&buffer[cursor], &r.payload.asMAC, 6);
+                cursor += 6;
+                break;
+            case OTHER:
             default: break;
         }
     }
