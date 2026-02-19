@@ -128,6 +128,8 @@ void loop() {
             lastDBMS = currentMS;
         }
     }
+
+    ws.cleanupClients();
 }
 
 #endif
