@@ -59,28 +59,28 @@ struct NodeRecord {
     bool alertLatched;  // tracks if an alert hasn't been cleared yet
 };
 
-/// @brief 
-/// @param packet 
-/// @param buffer 
-/// @param maxLen 
-/// @return 
+/// @brief Converts a MeshPacket struct into a compact byte array for LoRa transmission
+/// @param packet The source MeshPacket object containing the data to be transmitted
+/// @param buffer The destination byte array where the serialized data will be stored
+/// @param maxLen The size of the destination buffer to prevent overflow
+/// @return The actual number of bytes written to the buffer
 size_t serializePacket(const MeshPacket& packet, uint8_t* buffer, size_t maxLen);
 
-/// @brief rebuilds the C++ struct from LoRa bytes
-/// @param buffer 
-/// @param len 
-/// @param packet 
-/// @return
+/// @brief Reconstructs a MeshPacket struct from raw bytes received from LoRa
+/// @param buffer Pointer to the raw data received by LoRa
+/// @param len The number of bytes available in the buffer to be parsed
+/// @param packet The MeshPacket struct to be populated with the deserialized data
+/// @return True if the data was successfully parsed; False otherwise
 bool deserializePacket(const uint8_t* buffer, size_t len, MeshPacket& packet);
 
-/// @brief This function fills the JsonObject with record data...
-/// @param record 
-/// @param obj 
+/// @brief Converts a NodeRecord into ArduinoJson object for API or persistent storage
+/// @param record The read only source NodeRecord
+/// @param obj The JsonObject to be populated with the record's key-value pairs
 void nodeRecordToJsonObject(const NodeRecord& record, JsonObject& obj);
 
-/// @brief fill existing record from a JsonObject (aka, backup)
-/// @param obj 
-/// @param record 
+/// @brief Fills in a NodeRecord struct using data from a JSON object (e.g., loading from backup file)
+/// @param obj The read only source JSON data
+/// @param record The NodeRecord struct to be updated with the JSON values
 void jsonObjectToNodeRecord(const JsonObjectConst& obj, NodeRecord& record);
 
 /// @brief Converts a MAC address string (e.g. "AA:BB:CC:11:22:33") into a 6-byte array.
