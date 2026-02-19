@@ -140,12 +140,12 @@ void nodeRecordToJsonObject(const NodeRecord& record, JsonObject& obj) {
                 s["alert"] = r.isAlert;
                 break;
             case ASSIGNMENT_ID:
-                s["type"] = "assign_mac";
+                s["type"] = "assign_id";
                 s["val"] = r.payload.asByte;
                 s["alert"] = r.isAlert;
                 break;
             case ASSIGNMENT_MAC:
-                s["type"] = "assign_id";
+                s["type"] = "assign_mac";
                 s["val"] = rawMACtoStr(r.payload.asMAC);
                 s["alert"] = r.isAlert;
                 break;
