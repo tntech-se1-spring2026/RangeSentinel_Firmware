@@ -11,20 +11,20 @@
 
 extern AsyncWebSocket ws;
 
-/// @brief 
-/// @param server 
+/// @brief Initialize the web interface
+/// @param server Pointer to the AsyncWebServer instance
 void startWebServer(AsyncWebServer *server);
 
-/// @brief 
-/// @param server 
+/// @brief Enables access to the littleFS, allowing for log downloads 
+/// @param server Pointer to the AsyncWebServer instance
 void startFileServer(AsyncWebServer *server);
 
-/// @brief 
-/// @param server 
+/// @brief Set up the core system logic
+/// @param server Pointer to the AsyncWebServer instance
 void startBackend(AsyncWebServer *server);
 
-/// @brief
-/// @param server
+/// @brief ...
+/// @param server ...
 void startAPI(AsyncWebServer *server);
 
 #endif
