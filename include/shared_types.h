@@ -88,7 +88,7 @@ void strMACtoRaw(const char* MACstr, uint8_t* MACRaw);
 /// @brief Converts a 6-byte MAC array into a formatted string.
 /// @param MACRaw Pointer to the 6-byte array.
 /// @return A pointer to a static buffer containing the string.
-char* rawMACtoStr(uint8_t* MACRaw);
+char* rawMACtoStr(const uint8_t* MACRaw);
 
 /// @brief this function returns the first reading of a particular type in the readings array.
 /// @param readings the array of readings in the mesh packet

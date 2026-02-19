@@ -106,6 +106,7 @@ void nodeRecordToJsonObject(const NodeRecord& record, JsonObject& obj) {
     obj["mId"] = record.lastPacket.messageId;
     obj["alert"] = record.hasActiveAlert;
     obj["latched"] = record.alertLatched;
+    obj["mac"] = rawMACtoStr(record.MACAddress);
 
     JsonArray sensors = obj["sensors"].to<JsonArray>();
     // loop through readings and convert them to JSON objects
@@ -169,6 +170,53 @@ void jsonObjectToNodeRecord(const JsonObjectConst& obj, NodeRecord& record) {
     strlcpy(record.nodeName, obj["name"] | "Unknown", sizeof(record.nodeName));
     record.hasActiveAlert = obj["alert"] | false;
     record.alertLatched = obj["latched"] | false;
+    strMACtoRaw(obj["mac"], record.MACAddress);
+
+    // restore sensor readings
+    JsonArrayConst sensors = obj["sensors"];
+    int count = 0;
+
+    for (JsonObjectConst s : sensors) {
+        // don't overflow readings array
+        if (count >= MAX_SENSORS_PER_PACKET) break;
+
+        const char* typeStr = s["type"];
+        Reading& r = record.lastPacket.readings[count];
+        r.isAlert = s["alert"] | false;
+
+        if (strcmp(typeStr, "door") == 0) {
+            r.type = DOOR_SENSOR;
+            r.payload.asBool = s["val"];
+        }
+        else if (strcmp(typeStr, "motion") == 0) {
+            r.type = MOTION_SENSOR;
+            r.payload.asBool = s["val"];
+        }
+        else if (strcmp(typeStr, "batt") == 0) {
+            r.type = BATTERY_SENSOR;
+            r.payload.asFloat = s["val"];
+        }
+        else if (strcmp(typeStr, "assign_id") == 0) {
+            r.type = ASSIGNMENT_ID;
+            r.payload.asByte = s["val"];
+        }
+        else if (strcmp(typeStr, "assign_mac") == 0) {
+            r.type = ASSIGNMENT_MAC;
+            strMACtoRaw(s["val"], r.payload.asMAC);
+        }
+        else if (strcmp(typeStr, "req_assign") == 0) {
+            r.type = REQUEST_TO_ASSIGN;
+            strMACtoRaw(s["val"], r.payload.asMAC);
+        }
+        else if (strcmp(typeStr, "error") == 0) {
+            r.type = SENSOR_TYPE_ERROR;
+            r.payload.asByte = s["val"];
+        }
+        else {
+            r.type = OTHER;
+        }
+    }
+    record.lastPacket.readingCount = count;
 }
 
 void strMACtoRaw(const char* MACstr, uint8_t* MACRaw) {
@@ -177,7 +225,7 @@ void strMACtoRaw(const char* MACstr, uint8_t* MACRaw) {
            &MACRaw[3], &MACRaw[4], &MACRaw[5]);
 }
 
-char* rawMACtoStr(uint8_t* MACRaw) {
+char* rawMACtoStr(const uint8_t* MACRaw) {
     static char buffer[18]; // "XX:XX:XX:XX:XX:XX\0" is 18 chars
     snprintf(buffer, sizeof(buffer), "%02X:%02X:%02X:%02X:%02X:%02X",
             MACRaw[0], MACRaw[1], MACRaw[2], 
