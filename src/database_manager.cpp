@@ -1,31 +1,56 @@
-#include <ArduinoJson.h>
-#include <LittleFS.h>
 #include "database_manager.h"
 
-// live view
-std::array<NodeRecord, MAX_NODES> networkDatabase = {};
-// circular buffer history 
-std::array<NodeRecord, MAX_LOG_ENTRIES> eventLog = {};
-int logHead = 0;
-bool needsPersistence = false;
+#ifdef NODE_TYPE_VIEWER
+#include <ESPAsyncWebServer.h>
+extern AsyncWebSocket ws;
+#endif
 
-// helper function to update database
-void updateDatabase(MeshPacket incoming) {
-    if (incoming.nodeId >= networkDatabase.size()) {
-        Serial.printf("DB: Rejected node %d (out of bounds)\n", incoming.nodeId);
-        return;
+std::array<NodeRecord, MAX_NODES> networkDatabase   = {}; // live view
+std::array<NodeRecord, MAX_LOG_ENTRIES> eventLog    = {}; // circular buffer history 
+int logHead                                         = 0;
+bool needsPersistence                               = false;
+size_t numNodesInNetwork                            = 0;
+SemaphoreHandle_t meshMutex                         = NULL;
+
+bool appendToNetwork(NodeRecord newStatus){
+    if(numNodesInNetwork < MAX_NODES){
+        networkDatabase[numNodesInNetwork] = newStatus;
+        numNodesInNetwork++;
+        return true;
+    }else{
+        return false;
     }
+}
 
-    NodeRecord& currentRecord = networkDatabase.at(incoming.nodeId);
+// TODO: Finish this function
+void updateDatabase(MeshPacket incoming, uint8_t nodeID){
+    NodeRecord& currentRecord = networkDatabase.at(nodeID - 1);
 
     // only update if incoming is newer than what is already there
     if (incoming.messageId > currentRecord.lastPacket.messageId) {
+        bool foundAlert = false;
+
+        // look for alerts in the readings
+        for (int i = 0; i < incoming.readingCount; i++) {
+            // save alert status to individual reading
+            incoming.readings[i].isAlert = evaluateAlert(incoming.readings[i]);
+            if (evaluateAlert(incoming.readings[i])) {
+                foundAlert = true;
+            }
+        }
+
         currentRecord.lastPacket = incoming;
+        currentRecord.hasActiveAlert = foundAlert;  // store alert status
         currentRecord.lastSeen = millis();
+
+        // if there is an alert, lock the latch (user would have to clear / acknowledge alert to reset it)
+        if (foundAlert) {
+            currentRecord.alertLatched = true;
+        }
 
         // assign default name if it doesn't have one
         if (strlen(currentRecord.nodeName) == 0) {
-            snprintf(currentRecord.nodeName, sizeof(currentRecord.nodeName), "Node %d", incoming.nodeId);
+            snprintf(currentRecord.nodeName, sizeof(currentRecord.nodeName), "Node %d", nodeID);
         }
 
         // add to history
@@ -33,14 +58,24 @@ void updateDatabase(MeshPacket incoming) {
         logHead = (logHead + 1) % MAX_LOG_ENTRIES;
 
         needsPersistence = true;
-        Serial.printf("DB: Node %d updated & logged (Msg %d)\n", incoming.nodeId, incoming.messageId);
+
+        #ifdef NODE_TYPE_VIEWER
+        JsonDocument updateDoc;
+        JsonObject obj = updateDoc.to<JsonObject>();
+        nodeRecordToJsonObject(currentRecord, obj);
+        String output;
+        serializeJson(updateDoc, output);
+        ws.textAll(output);
+        #endif
+
+        // blankspace to keep logs aligned
+        Serial.printf("%s DB: Node %d updated & logged (Msg %d)\n", foundAlert ? "[ALERT!]" : "        ", nodeID, incoming.messageId);
     }
     else {
-        Serial.printf("DB: Ignored old/duplicate message %d from node %d\n", incoming.messageId, incoming.nodeId);
+        Serial.printf("DB: Ignored old/duplicate message %d from node %d\n", incoming.messageId, nodeID);
     }
 }
 
-// converts entire active database to JSON array
 String getDatabaseAsJson() {
     JsonDocument doc;
     JsonArray root = doc.to<JsonArray>();
@@ -57,7 +92,6 @@ String getDatabaseAsJson() {
     return output;
 }
 
-// converts circular event log to json
 String getEventLogAsJson() {
     JsonDocument doc;
     JsonArray root = doc.to<JsonArray>();
@@ -67,7 +101,7 @@ String getEventLogAsJson() {
         // handle wrapping around circular buffer and avoid negative indices
         int index = (logHead - 1 - i + MAX_LOG_ENTRIES) % MAX_LOG_ENTRIES;
         const NodeRecord& entry = eventLog[index];
-        if (entry.lastPacket.nodeId > 0) {
+        if (entry.nodeID > 0) {
             JsonObject obj = root.add<JsonObject>();
             nodeRecordToJsonObject(entry, obj);
         }
@@ -78,7 +112,6 @@ String getEventLogAsJson() {
     return output;
 }
 
-// saves database to LittleFS
 bool saveDatabaseToFS() {
     if (!needsPersistence) {
         // nothing changed so skip
@@ -92,7 +125,7 @@ bool saveDatabaseToFS() {
         JsonArray root = doc.to<JsonArray>();
 
         for (const auto& record : networkDatabase) {
-            if (record.lastPacket.nodeId > 0) {   // only save active nodes
+            if (record.nodeID > 0) {   // only save active nodes
                 JsonObject obj = root.add<JsonObject>();
                 nodeRecordToJsonObject(record, obj);
             }
@@ -115,7 +148,7 @@ bool saveDatabaseToFS() {
         JsonArray logs = logDoc["data"].to<JsonArray>();  // add label since we have head as well
 
         for (const auto& entry : eventLog) {
-            if (entry.lastPacket.nodeId > 0) {
+            if (entry.nodeID > 0) {
                 JsonObject obj = logs.add<JsonObject>();
                 nodeRecordToJsonObject(entry, obj);
             }
@@ -135,7 +168,6 @@ bool saveDatabaseToFS() {
     return true;
 }
 
-// retrieves data from backup in LittleFS
 void getDatabaseFromFS() {
     // restore current network status
     if (LittleFS.exists("/db_backup.json")) {
@@ -168,7 +200,7 @@ void getDatabaseFromFS() {
             JsonDocument logDoc;
             DeserializationError error = deserializeJson(logDoc, logFile);
             if (!error) {
-                logHead = logDoc["head"] | 0;   // so we know where to resume. defualt to 0
+                logHead = logDoc["head"] | 0;   // so we know where to resume. default to 0
                 JsonArray logs = logDoc["data"].as<JsonArray>();
                 int i = 0;
                 for (JsonObject obj : logs) {
@@ -196,8 +228,39 @@ void getDatabaseFromFS() {
     }
 }
 
-// development function to wipe db and logs to start fresh
-// CAN'T THINK OF A USE CASE TO BE IN FINAL PRODUCT
+// decides if incoming reading constitutes an alert
+bool evaluateAlert(const Reading& r) {
+    switch (r.type) {
+    case DOOR_SENSOR:
+        return r.payload.asBool == true;
+    case MOTION_SENSOR:
+        return r.payload.asBool == true;
+    case BATTERY_SENSOR:
+        return r.payload.asFloat < BATTERY_THRESHOLD;
+    default:
+        return false;
+    }
+}
+
+// manually clear the latch for a specific node
+bool clearAlertLatch(uint8_t nodeId) {
+    if (nodeId >= MAX_NODES) {
+        return false;  // invalid ID
+    }
+
+    // reset latch
+    networkDatabase.at(nodeId).alertLatched = false;
+
+    // trigger backup to LittleFS
+    needsPersistence = true;
+    saveDatabaseToFS();
+
+    Serial.printf("DB: Alert latch cleared for node %d\n", nodeId);
+    return true;  // success
+
+}
+
+
 void clearAllData() {
     LittleFS.remove("/db_backup.json");
     LittleFS.remove("/history_backup.json");
@@ -205,4 +268,46 @@ void clearAllData() {
     eventLog.fill({});
     logHead = 0;
     Serial.println("DB: Persistent storage wiped.");
+}
+
+int findNodeIndexByMAC(uint8_t* mac) {
+    for (int i = 0; i < networkDatabase.size(); i++) {
+        if (memcmp(networkDatabase[i].MACAddress, mac, 6) == 0) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+uint8_t addNodeToNetworkDatabase(MeshPacket firstTransmission){
+    NodeRecord newNode;
+    newNode.nodeID = numNodesInNetwork++;
+    newNode.lastPacket = firstTransmission;
+    newNode.lastSeen = millis();
+    memcpy(newNode.MACAddress, getReadingOfType(firstTransmission.readings, REQUEST_TO_ASSIGN)->payload.asMAC, 6);
+    // assign default name
+    snprintf(newNode.nodeName, sizeof(newNode.nodeName), "Node %d", newNode.nodeID);
+
+    (void)appendToNetwork(newNode);
+
+    // add to history
+    eventLog[logHead] = newNode;
+    logHead = (logHead + 1) % MAX_LOG_ENTRIES;
+
+    return newNode.nodeID;
+}
+
+bool updateNodeName(uint8_t nodeId, const char* newName) {
+    if (nodeId > MAX_NODES) {
+        return false;  // invalid ID
+    }
+
+    strlcpy(networkDatabase.at(nodeId).nodeName, newName, sizeof(networkDatabase.at(nodeId).nodeName));
+
+    // flag db tp be saved to LittleFS
+    needsPersistence = true;
+    saveDatabaseToFS();
+
+    Serial.printf("DB Node %d renamed to '%s'\n", nodeId, newName);
+    return true;
 }
