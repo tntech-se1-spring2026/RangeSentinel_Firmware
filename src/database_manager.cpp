@@ -296,3 +296,18 @@ uint8_t addNodeToNetworkDatabase(MeshPacket firstTransmission){
 
     return newNode.nodeID;
 }
+
+bool updateNodeName(uint8_t nodeId, const char* newName) {
+    if (nodeId > MAX_NODES) {
+        return false;  // invalid ID
+    }
+
+    strlcpy(networkDatabase.at(nodeId).nodeName, newName, sizeof(networkDatabase.at(nodeId).nodeName));
+
+    // flag db tp be saved to LittleFS
+    needsPersistence = true;
+    saveDatabaseToFS();
+
+    Serial.printf("DB Node %d renamed to '%s'\n", nodeId, newName);
+    return true;
+}

@@ -69,4 +69,11 @@ int findNodeIndexByMAC(uint8_t* mac);
 /// @param firstTransmission The first meshPacket transmission of the new node
 /// @return returns the nodeID that will be used to assign the new node
 uint8_t addNodeToNetworkDatabase(MeshPacket firstTransmission);
+
+/// @brief  Updates a node's name to a custom input
+/// @param nodeId The ID of the node to rename
+/// @param newName The custom string to assign as the name
+/// @return True if successful, False otherwise
+bool updateNodeName(uint8_t nodeId, const char* newName);
+
 #endif
