@@ -10,13 +10,17 @@
 typedef uint8_t MacAddress[6];
 
 // what kind of data?
+
+typedef uint8_t MacAddress[6];
+
 typedef enum {
     OTHER               = 0x00, 
     DOOR_SENSOR         = 0x01, // sends open as bool
     MOTION_SENSOR       = 0x02, // sends motion as bool
     BATTERY_SENSOR      = 0x03, // sends voltage as float
-    ASSIGNMENT          = 0x04, // sends nodeID as byte
-    REQUEST_TO_ASSIGN   = 0x05, // sends MAC as byte
+    ASSIGNMENT_ID       = 0x04, // sends nodeID as byte
+    ASSIGNMENT_MAC      = 0x05, // sends MAC as byte  
+    REQUEST_TO_ASSIGN   = 0x06, // sends MAC as byte
     SENSOR_TYPE_ERROR   = 0xFF
 } DataType;
 
@@ -26,13 +30,14 @@ typedef union {
     float asFloat;
     uint8_t asByte;
     MacAddress asMAC;
+    MacAddress asMAC;
 } Data;
 
 // single sensor event
 struct Reading {
-    //uint8_t sensorIndex;    // TODO: REMOVE
-    DataType type;        // format identifier
-    Data payload;     // actual data
+    //uint8_t sensorIndex;      // currently unused; will be used if we have multiple of the same sensors (if used uncomment usage in serialization functions)
+    DataType type;              // format identifier
+    Data payload;               // actual data
     bool isAlert;
 };
 
@@ -62,9 +67,9 @@ struct NodeRecord {
 size_t serializePacket(const MeshPacket& packet, uint8_t* buffer, size_t maxLen);
 
 /// @brief rebuilds the C++ struct from LoRa bytes
-/// @param buffer
-/// @param len
-/// @param packet
+/// @param buffer 
+/// @param len 
+/// @param packet 
 /// @return
 bool deserializePacket(const uint8_t* buffer, size_t len, MeshPacket& packet);
 

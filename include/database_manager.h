@@ -34,7 +34,8 @@ bool appendToNetwork(NodeRecord newStatus);
 
 /// @brief this function updates our database with the most current incoming packet
 /// @param incoming pass an incoming packet from a known node
-void updateDatabase(MeshPacket incoming);
+/// @param nodeID the nodeID of the node that sent the incoming packet
+void updateDatabase(MeshPacket incoming, uint8_t nodeID);
 
 /// @brief converts entire active database to JSON array
 String getDatabaseAsJson();
@@ -57,4 +58,14 @@ bool clearAlertLatch(uint8_t nodeId);
 
 /// @brief Wipes the databases (networkDatabase, eventLog, & LittleFS). This will be used for when the user makes a subtractive change to their network.
 void clearAllData();
+
+/// @brief This function returns the index of the node at the given MAC address; returns -1 if not found
+/// @param mac the MAC address of the node you are searching for
+/// @return Returns the index of the node with the given MAC; returns -1 if not found
+int findNodeIndexByMAC(uint8_t* mac);
+
+/// @brief Adds a new node to the networkDatabase 
+/// @param firstTransmission The first meshPacket transmission of the new node
+/// @return returns the nodeID that will be used to assign the new node
+uint8_t addNodeToNetworkDatabase(MeshPacket firstTransmission);
 #endif

@@ -24,7 +24,7 @@ bool appendToNetwork(NodeRecord newStatus){
 
 // TODO: Finish this function
 void updateDatabase(MeshPacket incoming, uint8_t nodeID){
-    NodeRecord& currentRecord = networkDatabase.at(nodeID);
+    NodeRecord& currentRecord = networkDatabase.at(nodeID - 1);
 
     // only update if incoming is newer than what is already there
     if (incoming.messageId > currentRecord.lastPacket.messageId) {
@@ -268,4 +268,28 @@ void clearAllData() {
     eventLog.fill({});
     logHead = 0;
     Serial.println("DB: Persistent storage wiped.");
+}
+
+int findNodeIndexByMAC(uint8_t* mac) {
+    for (int i = 0; i < networkDatabase.size(); i++) {
+        if (memcmp(networkDatabase[i].MACAddress, mac, 6) == 0) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+uint8_t addNodeToNetworkDatabase(MeshPacket firstTransmission){
+    NodeRecord newNode;
+    newNode.nodeID = numNodesInNetwork++;
+    newNode.lastPacket = firstTransmission;
+    newNode.lastSeen = millis();
+    memcpy(newNode.MACAddress, getReadingOfType(firstTransmission.readings, REQUEST_TO_ASSIGN)->payload.asMAC, 6);
+    // TODO: Add default name logic
+
+    (void)appendToNetwork(newNode);
+
+    // add to history
+    eventLog[logHead] = newNode;
+    logHead = (logHead + 1) % MAX_LOG_ENTRIES;
 }

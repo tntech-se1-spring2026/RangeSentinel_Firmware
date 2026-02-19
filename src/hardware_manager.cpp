@@ -113,6 +113,8 @@ void updateScreen() {
 
 // --- RADIO ---
 void setupRadio(uint8_t nodeID){
+    messagesSent = 0;
+
     // Manual reset of the LoRa radio to ensure a clean state
     Serial.println("Reseting radio");
     pinMode(RFM95_RST, OUTPUT);
@@ -148,36 +150,47 @@ void receiverListen(void* pvParameters){
         if (manager->recvfromAck(incoming, &len, &fromAddress)){ // true if a message is heard
             Serial.println("Message received from " + String(fromAddress));
 
-            // translate incoming intp a readable mesh packet
+            // translate incoming into a readable mesh packet
             MeshPacket incomingPacket;
-            deserializePacket(incoming, len, incomingPacket);
+            if(!deserializePacket(incoming, len, incomingPacket)){
+                Serial.println("Packet Failed to deserialize");
+                continue;
+            }
 
+            // --- CASE 1: UNASSIGNED NODE (ID 0) ---
             if(fromAddress == 0){
-                // This is a new node that needs assigned
-                // Check if it is sending a request to be assigned
-                if(Reading* req2Asn = getReadingOfType(incomingPacket.readings, REQUEST_TO_ASSIGN)){
-                    // check if it's MAC exists in our DB
-                        // if yes
-                            // This scenario would mean the node is assigned for us, but has forgotten its ID
-                            // send/assign it it's known nodeID
-                        // if no
-                            // This scenario would mean the node is new and wants to be assigned
-                            // eventually we will allow the user to accept the node to be added, for now we will just add it
-                            
-                }else{
-                    // This scenario would mean the node thinks it is assigned, but still has nodeID 0. Or a serialization error, or a node that isn't ours claiming to be 0
-                    // TODO: Write handling logic for this
-                }
+                Reading* req2Asn = getReadingOfType(incomingPacket.readings, REQUEST_TO_ASSIGN);
+                
+                if(req2Asn){ // Check if it is sending a request to be assigned (if it wasn't requesting assignment, then this will be false)
+                    int nodeIdx = findNodeIndexByMAC(req2Asn->payload.asMAC); 
+                    
+                    if(nodeIdx != -1){
+                        // Node is known, send back its existing ID
+                        Serial.printf("Known MAC found. Re-assigning ID: %d\n", networkDatabase[nodeIdx].nodeID);
+                        assignNodeID(networkDatabase[nodeIdx].nodeID, req2Asn->payload.asMAC); 
+                    }else{
+                        // TODO: eventually we will allow the user to accept the node to be added, for now we will just add it
+                        // Add new node to database & assign it's ID
+                        uint8_t newID = addNodeToNetworkDatabase(incomingPacket);
+                        assignNodeID(newID, req2Asn->payload.asMAC); // Send to broadcast or MAC-specific logic
+                    }
+                } 
             }else{
-
+                // --- CASE 2: ASSIGNED NODE ---
+                if(fromAddress > numNodesInNetwork){
+                    // This happens if the Viewer rebooted and lost its memory
+                    // TODO: Tell the node to re-identify or just add it on the fly
+                }else{
+                    // Update the database with the latest readings
+                    updateDatabase(incomingPacket, fromAddress);
+                }
             }
         }
-        
-        vTaskDelay(1 / portTICK_PERIOD_MS); // FEED THE WATCHDOG: This 1ms pause is mandatory on Core 0
+        vTaskDelay(1 / portTICK_PERIOD_MS); // FEED THE WATCHDOG: This 1ms pause is mandatory on Core 0 otherwise we will be at 100% usage and 
     }
 }
  
-void sensorListen(){ // Must be called constantly to process incoming packets
+void sensorListen(){
     uint8_t incoming[RH_MESH_MAX_MESSAGE_LEN]; // buffer to hold the raw bytes of any incoming message.
     uint8_t len = sizeof(incoming);
     uint8_t fromAddress;
@@ -186,6 +199,34 @@ void sensorListen(){ // Must be called constantly to process incoming packets
     if (manager->recvfromAck(incoming, &len, &fromAddress)){
         Serial.println("Message received from " + String(fromAddress));
 
+    }
+}
+
+void assignNodeID(uint8_t desiredID, uint8_t* nodeMAC){
+    Reading assignmentIDData;
+    assignmentIDData.type = ASSIGNMENT_ID;
+    assignmentIDData.payload.asByte = desiredID;
+
+    Reading assignmentMACData;
+    assignmentMACData.type = ASSIGNMENT_MAC;
+    memcpy(assignmentMACData.payload.asMAC, nodeMAC, 6);
+    
+    MeshPacket assignmentPacket;
+    assignmentPacket.messageId = messagesSent++;
+    assignmentPacket.readingCount = 2;
+    assignmentPacket.readings[0] = assignmentIDData;
+    assignmentPacket.readings[1] = assignmentMACData;
+
+    uint8_t rawMessage[RH_MESH_MAX_MESSAGE_LEN];
+    uint8_t numBytesInSerializedPacket = serializePacket(assignmentPacket, rawMessage, RH_MESH_MAX_MESSAGE_LEN);
+
+    Serial.printf("Broadcasting assignment: ID %d to MAC\n", desiredID);
+
+    // Every node hears this assignment. The sensor will know to assign itself based on the MAC.
+    uint8_t error = manager->sendtoWait(rawMessage, numBytesInSerializedPacket, RH_BROADCAST_ADDRESS);
+    
+    if (error != RH_ROUTER_ERROR_NONE) {
+        Serial.println("Broadcast failed to clear radio buffer.");
     }
 }
 
