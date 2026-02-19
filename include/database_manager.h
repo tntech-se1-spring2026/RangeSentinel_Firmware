@@ -38,10 +38,11 @@ bool appendToNetwork(NodeRecord newStatus);
 void updateDatabase(MeshPacket incoming, uint8_t nodeID);
 
 /// @brief converts entire active database to JSON array
+/// @brief JSON string of live view of database
 String getDatabaseAsJson();
 
 /// @brief converts entire history log to JSON array
-/// @return 
+/// @return JSON string of entire log history of data
 String getEventLogAsJson();
 
 /// @brief This function saves the database to the LittleFS, allowing database persistence.
@@ -50,10 +51,10 @@ bool saveDatabaseToFS();
 /// @brief This function gets the database from the LittleFS
 void getDatabaseFromFS();
 
-// decides if incoming reading constitutes an alert
+/// @brief Decides if incoming reading constitutes an alert
 bool evaluateAlert(const Reading& r);
 
-// manually clear the latch for a specific node
+/// @brief Manually clear the latch for a specific node
 bool clearAlertLatch(uint8_t nodeId);
 
 /// @brief Wipes the databases (networkDatabase, eventLog, & LittleFS). This will be used for when the user makes a subtractive change to their network.
