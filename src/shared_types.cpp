@@ -59,24 +59,36 @@ bool deserializePacket(const uint8_t* buffer, size_t len, MeshPacket& packet) {
     for (int i = 0; i < packet.readingCount; i++) {
         if (cursor >= len) break;
 
-        //packet.readings[i].sensorIndex = buffer[cursor++];
         packet.readings[i].type = (DataType)buffer[cursor++];
 
         switch (packet.readings[i].type) {
             // fall down to error case (all write 1 byte)
             case DOOR_SENSOR:
             case MOTION_SENSOR:
+            case ASSIGNMENT_ID:
             case SENSOR_TYPE_ERROR:
+                if (cursor + 1 > len) return false;
                 packet.readings[i].payload.asByte = buffer[cursor++];
                 // safety check for deserializing booleans
-                if (packet.readings[i].type != SENSOR_TYPE_ERROR) {
+                if (packet.readings[i].type == DOOR_SENSOR || packet.readings[i].type == MOTION_SENSOR) {
                     packet.readings[i].payload.asBool = (packet.readings[i].payload.asByte > 0);
                 }
                 break;
+            // write 4 bytes
             case BATTERY_SENSOR:
+            if (cursor + 4 > len) return false;
                 memcpy(&packet.readings[i].payload.asFloat, &buffer[cursor], 4);
                 cursor += 4;
                 break;
+            // write 6 bytes
+            case ASSIGNMENT_MAC:
+            case REQUEST_TO_ASSIGN:
+                //bounds check
+                if (cursor + 6 > len) return false;
+                memcpy(packet.readings[i].payload.asMAC, &buffer[cursor], 6);
+                cursor += 6;
+                break;
+            case OTHER:
             default: break;
         }
     }
