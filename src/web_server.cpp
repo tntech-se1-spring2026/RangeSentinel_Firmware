@@ -53,8 +53,30 @@ void startBackend(AsyncWebServer *server) {
     // acknowledge alerts
     server->on("/web/ack", HTTP_POST, [](AsyncWebServerRequest *request) {
         if (request->hasParam("id")) {
-            // cast to uint8_t instead of regular int
-            uint8_t id = (uint8_t)request->getParam("id")->value().toInt();
+            String idStr = request->getParam("id")->value();
+            idStr.trim();
+            // check ID is not empty
+            if (idStr.length() == 0) {
+                request->send(400, "text/plain", "Error: ID parameter is empty");
+                return;
+            }
+            // check each character is a digit
+            for (int i = 0; i < idStr.length(); i++) {
+                if (!isDigit(idStr.charAt(i))) {
+                request->send(400, "text/plain", "Error: ID must be an integer");
+                return;
+                }
+            }
+
+            // convert to long first to prevent overflow
+            long parsedId = idStr.toInt(); 
+            if (parsedId > 255) {
+                request->send(400, "text/plain", "Error: ID out of range (must be 0-255).");
+                return;
+            }
+
+            uint8_t id = (uint8_t)parsedId;
+
             if (clearAlertLatch(id)) {
                 request->send(200, "text/plain", "Ok: Latch cleared");
             }
