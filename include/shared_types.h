@@ -11,8 +11,6 @@ typedef uint8_t MacAddress[6];
 
 // what kind of data?
 
-typedef uint8_t MacAddress[6];
-
 typedef enum {
     OTHER               = 0x00, 
     DOOR_SENSOR         = 0x01, // sends open as bool
@@ -29,7 +27,6 @@ typedef union {
     bool asBool;
     float asFloat;
     uint8_t asByte;
-    MacAddress asMAC;
     MacAddress asMAC;
 } Data;
 
