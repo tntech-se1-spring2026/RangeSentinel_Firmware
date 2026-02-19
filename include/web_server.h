@@ -15,7 +15,7 @@ extern AsyncWebSocket ws;
 /// @param server Pointer to the AsyncWebServer instance
 void startWebServer(AsyncWebServer *server);
 
-/// @brief Enables access to the littleFS, allowing for log downloads 
+/// @brief Allows files in littleFS's /www to be arbitrarily served up
 /// @param server Pointer to the AsyncWebServer instance
 void startFileServer(AsyncWebServer *server);
 
