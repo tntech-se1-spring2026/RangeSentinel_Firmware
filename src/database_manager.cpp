@@ -25,56 +25,56 @@ bool appendToNetwork(NodeRecord newStatus){
     }
 }
 
-// TODO: Finish this function
 void updateDatabase(MeshPacket incoming, uint8_t nodeID){
     if(xSemaphoreTake(meshMutex, portMAX_DELAY)){ // LOCK        
         NodeRecord& currentRecord = networkDatabase.at(nodeID - 1);
 
-    // only update if incoming is newer than what is already there
-    if (incoming.messageId > currentRecord.lastPacket.messageId) {
-        bool foundAlert = false;
+        // only update if incoming is newer than what is already there
+        if (incoming.messageId > currentRecord.lastPacket.messageId) {
+            bool foundAlert = false;
 
-        // look for alerts in the readings
-        for (int i = 0; i < incoming.readingCount; i++) {
-            // save alert status to individual reading
-            incoming.readings[i].isAlert = evaluateAlert(incoming.readings[i]);
-            if (evaluateAlert(incoming.readings[i])) {
-                foundAlert = true;
+            // look for alerts in the readings
+            for (int i = 0; i < incoming.readingCount; i++) {
+                // save alert status to individual reading
+                incoming.readings[i].isAlert = evaluateAlert(incoming.readings[i]);
+                if (evaluateAlert(incoming.readings[i])) {
+                    foundAlert = true;
+                }
             }
+
+            currentRecord.lastPacket = incoming;
+            currentRecord.hasActiveAlert = foundAlert;  // store alert status
+            currentRecord.lastSeen = millis();
+
+            // if there is an alert, lock the latch (user would have to clear / acknowledge alert to reset it)
+            if (foundAlert) {
+                currentRecord.alertLatched = true;
+            }
+
+            // assign default name if it doesn't have one
+            if (strlen(currentRecord.nodeName) == 0) {
+                snprintf(currentRecord.nodeName, sizeof(currentRecord.nodeName), "Node %d", nodeID);
+            }
+
+                // add to history
+                eventLog[logHead] = currentRecord;
+                logHead = (logHead + 1) % MAX_LOG_ENTRIES;
+
+            needsPersistence = true;
+
+            #ifdef NODE_TYPE_VIEWER
+            JsonDocument updateDoc;
+            JsonObject obj = updateDoc.to<JsonObject>();
+            nodeRecordToJsonObject(currentRecord, obj);
+            String output;
+            serializeJson(updateDoc, output);
+            ws.textAll(output);
+            #endif
+
+            // blankspace to keep logs aligned
+            Serial.printf("%s DB: Node %d updated & logged (Msg %d)\n", foundAlert ? "[ALERT!]" : "        ", nodeID, incoming.messageId);
+            xSemaphoreGive(meshMutex); // UNLOCK
         }
-
-        currentRecord.lastPacket = incoming;
-        currentRecord.hasActiveAlert = foundAlert;  // store alert status
-        currentRecord.lastSeen = millis();
-
-        // if there is an alert, lock the latch (user would have to clear / acknowledge alert to reset it)
-        if (foundAlert) {
-            currentRecord.alertLatched = true;
-        }
-
-        // assign default name if it doesn't have one
-        if (strlen(currentRecord.nodeName) == 0) {
-            snprintf(currentRecord.nodeName, sizeof(currentRecord.nodeName), "Node %d", nodeID);
-        }
-
-            // add to history
-            eventLog[logHead] = currentRecord;
-            logHead = (logHead + 1) % MAX_LOG_ENTRIES;
-
-        needsPersistence = true;
-
-        #ifdef NODE_TYPE_VIEWER
-        JsonDocument updateDoc;
-        JsonObject obj = updateDoc.to<JsonObject>();
-        nodeRecordToJsonObject(currentRecord, obj);
-        String output;
-        serializeJson(updateDoc, output);
-        ws.textAll(output);
-        #endif
-
-        // blankspace to keep logs aligned
-        Serial.printf("%s DB: Node %d updated & logged (Msg %d)\n", foundAlert ? "[ALERT!]" : "        ", nodeID, incoming.messageId);
-        xSemaphoreGive(meshMutex); // UNLOCK
     }
 }
 
