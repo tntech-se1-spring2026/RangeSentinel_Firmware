@@ -27,16 +27,19 @@ size_t serializePacket(const MeshPacket& packet, uint8_t* buffer, size_t maxLen)
             case MOTION_SENSOR:
             case ASSIGNMENT_ID:
             case SENSOR_TYPE_ERROR:
+            if (cursor + 1 > maxLen) break;
                 buffer[cursor++] = r.payload.asByte;
                 break;
             // 4 bytes
             case BATTERY_SENSOR:
+            if (cursor + 4 > maxLen) break;
                 memcpy(&buffer[cursor], &r.payload.asFloat, 4);
                 cursor += 4;
                 break;
             // 6 bytes
             case ASSIGNMENT_MAC:
             case REQUEST_TO_ASSIGN:
+            if (cursor + 6 > maxLen) break;
                 memcpy(&buffer[cursor], &r.payload.asMAC, 6);
                 cursor += 6;
                 break;
