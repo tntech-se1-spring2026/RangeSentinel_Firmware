@@ -285,11 +285,14 @@ uint8_t addNodeToNetworkDatabase(MeshPacket firstTransmission){
     newNode.lastPacket = firstTransmission;
     newNode.lastSeen = millis();
     memcpy(newNode.MACAddress, getReadingOfType(firstTransmission.readings, REQUEST_TO_ASSIGN)->payload.asMAC, 6);
-    // TODO: Add default name logic
+    // assign default name
+    snprintf(newNode.nodeName, sizeof(newNode.nodeName), "Node %d", newNode.nodeID);
 
     (void)appendToNetwork(newNode);
 
     // add to history
     eventLog[logHead] = newNode;
     logHead = (logHead + 1) % MAX_LOG_ENTRIES;
+
+    return newNode.nodeID;
 }
