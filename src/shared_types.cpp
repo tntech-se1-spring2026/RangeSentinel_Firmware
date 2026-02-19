@@ -139,6 +139,20 @@ void nodeRecordToJsonObject(const NodeRecord& record, JsonObject& obj) {
                 s["val"] = r.payload.asByte;
                 s["alert"] = r.isAlert;
                 break;
+            case ASSIGNMENT_ID:
+                s["type"] = "assign_mac";
+                s["val"] = r.payload.asByte;
+                s["alert"] = r.isAlert;
+                break;
+            case ASSIGNMENT_MAC:
+                s["type"] = "assign_id";
+                s["val"] = rawMACtoStr(r.payload.asMAC);
+                s["alert"] = r.isAlert;
+                break;
+            case REQUEST_TO_ASSIGN:
+                s["type"] = "req_assign";
+                s["val"] = rawMACtoStr(r.payload.asMAC);
+                s["alert"] = r.isAlert;
             default: 
                 s["type"] = "unknown";
                 break;
