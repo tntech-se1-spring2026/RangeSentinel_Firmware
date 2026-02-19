@@ -1,17 +1,28 @@
 #include "hardware_manager.h"
 #include "database_manager.h"
 
-uint32_t nodeID                 = 0; // zero is the nodeID that all sensor nodes get set to while waiting to be assigned as a node in the mesh from the viewer node
-unsigned long currentMS         = 0;
+uint8_t nodeID                         = UNASSIGNED_ID; // 254 is the nodeID that all sensor nodes get set to while waiting to be assigned as a node in the mesh from the viewer node
+unsigned long currentMS                 = 0;
 
 // sensor node
 #ifdef NODE_TYPE_SENSOR
-unsigned long lastRSMS          = 0;
-const long fiftyMSInterval      = 50;
+unsigned long lastRSMS                  = 0; // last reed switch reading
+const unsigned long fiftyMSInterval     = 50; 
+const unsigned long oneMinInterval      = 60000;
+const unsigned long tenSecInterval      = 10000;
+unsigned long lastReq                   = 0; // last requestAssignment function call
+unsigned long lastHeartBeat             = 0;
+SensorType sensor; // holds the type of sensor
 void setup() {
-    setupRadio(0);
+    Serial.begin(115200);
+    setupRadio(nodeID);
+
     // TODO: Add logic to decide what kind of sensor node
+
+    // TODO: door logic
     pinMode(RS_PIN, INPUT_PULLUP); // set the reed switch's pin's mode
+
+    // TODO: Cam logic
 }
 
 void loop() {
@@ -20,10 +31,21 @@ void loop() {
        The loop() needs to run as fast as possible. If you put a delay() 
        at the end of the loop, our node will be "deaf" during that delay.
     */
-   // TODO: create sensor node logic
     currentMS = millis();
-    
+
     sensorListen();
+    
+    // requests assignment every 10 seconds while we aren't connected to the network.
+    if(nodeID == UNASSIGNED_ID && (currentMS - lastReq > tenSecInterval)){
+        lastReq = millis();
+        requestAssignment();
+    }
+
+    // send heartbeat every min
+    if(currentMS - lastHeartBeat > oneMinInterval){
+        lastHeartBeat = millis();
+        sendHeartBeat();
+    }
     
     // delay prevents bouncing
     // if(currentMS - lastRSMS > fiftyMSInterval){
@@ -65,7 +87,7 @@ void setup(){
     // initialize the mutex to protect db shared btwn cores
     meshMutex = xSemaphoreCreateMutex();
     
-    nodeID = 1; // hard set the nodeID of the viewing node to one
+    nodeID = VIEWER_ID; // hard set the nodeID of the viewing node to one
     setupRadio(nodeID);
     // run the listen function exclusively on core 0
     xTaskCreatePinnedToCore(

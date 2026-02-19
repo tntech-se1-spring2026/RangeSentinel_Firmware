@@ -11,14 +11,19 @@
 typedef uint8_t MacAddress[6];
 
 typedef enum {
+    // --- DEFAULT ---
     OTHER               = 0x00, 
+    SENSOR_TYPE_ERROR   = 0xFF,
+
+    // --- SENSOR ---
     DOOR_SENSOR         = 0x01, // sends open as bool
     MOTION_SENSOR       = 0x02, // sends motion as bool
     BATTERY_SENSOR      = 0x03, // sends voltage as float
+    
+    // --- COMM ---
     ASSIGNMENT_ID       = 0x04, // sends nodeID as byte
     ASSIGNMENT_MAC      = 0x05, // sends MAC as byte  
-    REQUEST_TO_ASSIGN   = 0x06, // sends MAC as byte
-    SENSOR_TYPE_ERROR   = 0xFF
+    REQUEST_TO_ASSIGN   = 0x06 // sends MAC as byte
 } DataType;
 
 // payload holder

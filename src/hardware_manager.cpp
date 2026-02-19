@@ -6,6 +6,7 @@
 // --- RADIO COMM ---
 RH_RF95 rf95(RFM95_CS, RFM95_INT); // radio driver
 RHMesh* manager;
+double messagesSent = 0;
 
 // --- SCREEN ---
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
@@ -137,7 +138,7 @@ void setupRadio(uint8_t nodeID){
 
     // TX Power: 5 to 23 dBm. 23 is max power. 
     // false = don't use RFO pin, use PA_BOOST (standard for SX1276)
-    rf95.setTxPower(23, false);
+    rf95.setTxPower(10, false);
 }
 
 void receiverListen(void* pvParameters){
@@ -157,8 +158,8 @@ void receiverListen(void* pvParameters){
                 continue;
             }
 
-            // --- CASE 1: UNASSIGNED NODE (ID 0) ---
-            if(fromAddress == 0){
+            // --- CASE 1: UNASSIGNED NODE (ID 254) ---
+            if(fromAddress == UNASSIGNED_ID){
                 Reading* req2Asn = getReadingOfType(incomingPacket.readings, REQUEST_TO_ASSIGN);
                 
                 if(req2Asn){ // Check if it is sending a request to be assigned (if it wasn't requesting assignment, then this will be false)
@@ -199,10 +200,47 @@ void sensorListen(){
     if (manager->recvfromAck(incoming, &len, &fromAddress)){
         Serial.println("Message received from " + String(fromAddress));
 
+        // translate incoming into a readable mesh packet
+        MeshPacket incomingPacket;
+        if(!deserializePacket(incoming, len, incomingPacket)){
+            Serial.println("Packet Failed to deserialize");
+        }
+
+        // check if we still need assigned
+        if(nodeID == UNASSIGNED_ID){
+            // ensure sender is correct
+            if(fromAddress == VIEWER_ID){
+                // grab values from transmission
+                Reading* assignedMAC = getReadingOfType(incomingPacket.readings, ASSIGNMENT_MAC);
+                Reading* assignedID = getReadingOfType(incomingPacket.readings, ASSIGNMENT_ID);
+
+                // ensure both readings exist
+                if(assignedID && assignedMAC){
+                    // grab mac
+                    uint8_t sensorMAC[6];
+                    esp_read_mac(sensorMAC, ESP_MAC_WIFI_STA);
+
+                    // check if our mac matches
+                    if(memcmp(assignedMAC->payload.asMAC, sensorMAC, 6) == 0){
+                        // assign your new ID
+                        rf95.setThisAddress(assignedID->payload.asByte);
+                        manager->setThisAddress(assignedID->payload.asByte);
+                        manager->clearRoutingTable();
+
+                        // send heartbeat as confirmation
+                        sendHeartBeat();
+                        lastHeartBeat = millis();
+                    }
+                }
+            }
+        }else{
+            // normal listen behavior when assigned
+        }
     }
 }
 
 void assignNodeID(uint8_t desiredID, uint8_t* nodeMAC){
+    // Create readings
     Reading assignmentIDData;
     assignmentIDData.type = ASSIGNMENT_ID;
     assignmentIDData.payload.asByte = desiredID;
@@ -211,22 +249,76 @@ void assignNodeID(uint8_t desiredID, uint8_t* nodeMAC){
     assignmentMACData.type = ASSIGNMENT_MAC;
     memcpy(assignmentMACData.payload.asMAC, nodeMAC, 6);
     
+    // Create Packet
     MeshPacket assignmentPacket;
     assignmentPacket.messageId = messagesSent++;
     assignmentPacket.readingCount = 2;
     assignmentPacket.readings[0] = assignmentIDData;
     assignmentPacket.readings[1] = assignmentMACData;
 
+    // Serialize Packet
     uint8_t rawMessage[RH_MESH_MAX_MESSAGE_LEN];
     uint8_t numBytesInSerializedPacket = serializePacket(assignmentPacket, rawMessage, RH_MESH_MAX_MESSAGE_LEN);
 
     Serial.printf("Broadcasting assignment: ID %d to MAC\n", desiredID);
 
-    // Every node hears this assignment. The sensor will know to assign itself based on the MAC.
-    uint8_t error = manager->sendtoWait(rawMessage, numBytesInSerializedPacket, RH_BROADCAST_ADDRESS);
-    
+    // Sends the assignment 3 times as a broadcast. The sensor will know to assign itself based on the MAC.
+    for(int i = 0; i < 3; i++){
+        uint8_t error = manager->sendto(rawMessage, numBytesInSerializedPacket, RH_BROADCAST_ADDRESS);
+        delay(200);
+    }
+}
+
+void requestAssignment(){
+    // Create readings
+    Reading request;
+    request.type = REQUEST_TO_ASSIGN;
+    uint8_t sensorMAC[6];
+    esp_read_mac(sensorMAC, ESP_MAC_WIFI_STA);
+    memcpy(request.payload.asMAC, sensorMAC, 6);
+
+    // Create Packet
+    MeshPacket requestPacket;
+    requestPacket.messageId = messagesSent++;
+    requestPacket.readingCount = 1;
+    requestPacket.readings[0] = request;
+
+    // Serialize Packet
+    uint8_t rawMessage[RH_MESH_MAX_MESSAGE_LEN];
+    uint8_t numBytesInSerializedPacket = serializePacket(requestPacket, rawMessage, RH_MESH_MAX_MESSAGE_LEN);
+
+    // Send Packet
+    uint8_t error = manager->sendto(rawMessage, numBytesInSerializedPacket, VIEWER_ID); // send to viewer nodeID
+
+    // Check for error
     if (error != RH_ROUTER_ERROR_NONE) {
-        Serial.println("Broadcast failed to clear radio buffer.");
+        Serial.println("Message failed to clear radio buffer.");
+    }
+}
+
+void sendHeartBeat(){
+    // create reading
+    Reading batteryReading;
+    batteryReading.type = BATTERY_SENSOR;
+    float voltage = getBatteryVoltage();
+    batteryReading.payload.asFloat = voltage;
+
+    // create packet
+    MeshPacket heartBeatPacket;
+    heartBeatPacket.messageId = messagesSent++;
+    heartBeatPacket.readingCount = 1;
+    heartBeatPacket.readings[0] = batteryReading;
+
+    // serialize
+    uint8_t rawMessage[RH_MESH_MAX_MESSAGE_LEN];
+    uint8_t numBytesInSerializedPacket = serializePacket(heartBeatPacket, rawMessage, RH_MESH_MAX_MESSAGE_LEN);
+
+    // send packet
+    uint8_t error = manager->sendtoWait(rawMessage, numBytesInSerializedPacket, VIEWER_ID); // send to viewer nodeID
+
+    // Check for error
+    if (error != RH_ROUTER_ERROR_NONE) {
+        Serial.println("Message failed to clear radio buffer.");
     }
 }
 
