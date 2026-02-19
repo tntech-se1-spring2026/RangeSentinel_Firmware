@@ -13,14 +13,23 @@
 #include <RH_RF95.h> // The physical layer driver (SX1276)
 #include <RHMesh.h> // The network layer manager (Routing/Mesh)
 
-#define SCREEN_WIDTH 128
-#define SCREEN_HEIGHT 64
+#define SCREEN_WIDTH    128
+#define SCREEN_HEIGHT   64
+#define UNASSIGNED_ID   254
+#define VIEWER_ID       1  
+
+typedef enum{
+    CAMERA,
+    REED_SWITCH
+} SensorType;
 
 #pragma region VARIABLES
 // radio
 extern RH_RF95 rf95;
 extern RHMesh* manager;
-extern uint32_t messagesSent;
+extern double messagesSent;
+extern uint8_t nodeID;
+extern unsigned long lastHeartBeat;
 // screen
 extern Adafruit_SSD1306 display;
 extern int brightness;
@@ -50,7 +59,16 @@ void receiverListen(void* pvParameters);
 /// @brief listens for and handles incoming packets from the network. Must be called constantly to process incoming packets
 void sensorListen();
 
+/// @brief This function sends the node assignment packet
+/// @param desiredID The nodeID that needs to be assigned to the node
+/// @param nodeMAC The MAC of the node that needs to be assigned
 void assignNodeID(uint8_t desiredID, uint8_t* nodeMAC);
+
+/// @brief This function is called by the sensor node when it hasn't been assigned a nodeID in the network. It runs this every minute until it is assigned
+void requestAssignment();
+
+/// @brief This function sends a very basic message just saying "I'm alive!"
+void sendHeartBeat();
 
 // --- BATTERY ---
 /// @brief calculates the battery's current voltage

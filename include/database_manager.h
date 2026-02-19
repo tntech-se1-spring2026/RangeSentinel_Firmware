@@ -7,7 +7,7 @@
 * cores attempting to simultaneously access it.
 * 
 * USAGE EXAMPLE:
-* if (xSemaphoreTake(meshMutex, portMAX_DELAY)) { // LOCK
+* if(xSemaphoreTake(meshMutex, portMAX_DELAY)){ // LOCK
 * 	// Put database access in place of this line
 *	xSemaphoreGive(meshMutex); // UNLOCK
 * }

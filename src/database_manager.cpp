@@ -12,67 +12,69 @@ bool needsPersistence                               = false;
 size_t numNodesInNetwork                            = 0;
 SemaphoreHandle_t meshMutex                         = NULL;
 
+// TODO: consolidate into one function with addNodeToNetworkDatabase
 bool appendToNetwork(NodeRecord newStatus){
     if(numNodesInNetwork < MAX_NODES){
-        networkDatabase[numNodesInNetwork] = newStatus;
-        numNodesInNetwork++;
+        if(xSemaphoreTake(meshMutex, portMAX_DELAY)){ // LOCK 
+            networkDatabase[numNodesInNetwork] = newStatus;
+            xSemaphoreGive(meshMutex); // UNLOCK
+        }
         return true;
     }else{
         return false;
     }
 }
 
-// TODO: Finish this function
 void updateDatabase(MeshPacket incoming, uint8_t nodeID){
-    NodeRecord& currentRecord = networkDatabase.at(nodeID - 1);
+    if(xSemaphoreTake(meshMutex, portMAX_DELAY)){ // LOCK        
+        NodeRecord& currentRecord = networkDatabase.at(nodeID - 1);
 
-    // only update if incoming is newer than what is already there
-    if (incoming.messageId > currentRecord.lastPacket.messageId) {
-        bool foundAlert = false;
+        // only update if incoming is newer than what is already there
+        if (incoming.messageId > currentRecord.lastPacket.messageId) {
+            bool foundAlert = false;
 
-        // look for alerts in the readings
-        for (int i = 0; i < incoming.readingCount; i++) {
-            // save alert status to individual reading
-            incoming.readings[i].isAlert = evaluateAlert(incoming.readings[i]);
-            if (evaluateAlert(incoming.readings[i])) {
-                foundAlert = true;
+            // look for alerts in the readings
+            for (int i = 0; i < incoming.readingCount; i++) {
+                // save alert status to individual reading
+                incoming.readings[i].isAlert = evaluateAlert(incoming.readings[i]);
+                if (evaluateAlert(incoming.readings[i])) {
+                    foundAlert = true;
+                }
             }
+
+            currentRecord.lastPacket = incoming;
+            currentRecord.hasActiveAlert = foundAlert;  // store alert status
+            currentRecord.lastSeen = millis();
+
+            // if there is an alert, lock the latch (user would have to clear / acknowledge alert to reset it)
+            if (foundAlert) {
+                currentRecord.alertLatched = true;
+            }
+
+            // assign default name if it doesn't have one
+            if (strlen(currentRecord.nodeName) == 0) {
+                snprintf(currentRecord.nodeName, sizeof(currentRecord.nodeName), "Node %d", nodeID);
+            }
+
+                // add to history
+                eventLog[logHead] = currentRecord;
+                logHead = (logHead + 1) % MAX_LOG_ENTRIES;
+
+            needsPersistence = true;
+
+            #ifdef NODE_TYPE_VIEWER
+            JsonDocument updateDoc;
+            JsonObject obj = updateDoc.to<JsonObject>();
+            nodeRecordToJsonObject(currentRecord, obj);
+            String output;
+            serializeJson(updateDoc, output);
+            ws.textAll(output);
+            #endif
+
+            // blankspace to keep logs aligned
+            Serial.printf("%s DB: Node %d updated & logged (Msg %d)\n", foundAlert ? "[ALERT!]" : "        ", nodeID, incoming.messageId);
+            xSemaphoreGive(meshMutex); // UNLOCK
         }
-
-        currentRecord.lastPacket = incoming;
-        currentRecord.hasActiveAlert = foundAlert;  // store alert status
-        currentRecord.lastSeen = millis();
-
-        // if there is an alert, lock the latch (user would have to clear / acknowledge alert to reset it)
-        if (foundAlert) {
-            currentRecord.alertLatched = true;
-        }
-
-        // assign default name if it doesn't have one
-        if (strlen(currentRecord.nodeName) == 0) {
-            snprintf(currentRecord.nodeName, sizeof(currentRecord.nodeName), "Node %d", nodeID);
-        }
-
-        // add to history
-        eventLog[logHead] = currentRecord;
-        logHead = (logHead + 1) % MAX_LOG_ENTRIES;
-
-        needsPersistence = true;
-
-        #ifdef NODE_TYPE_VIEWER
-        JsonDocument updateDoc;
-        JsonObject obj = updateDoc.to<JsonObject>();
-        nodeRecordToJsonObject(currentRecord, obj);
-        String output;
-        serializeJson(updateDoc, output);
-        ws.textAll(output);
-        #endif
-
-        // blankspace to keep logs aligned
-        Serial.printf("%s DB: Node %d updated & logged (Msg %d)\n", foundAlert ? "[ALERT!]" : "        ", nodeID, incoming.messageId);
-    }
-    else {
-        Serial.printf("DB: Ignored old/duplicate message %d from node %d\n", incoming.messageId, nodeID);
     }
 }
 
@@ -80,11 +82,14 @@ String getDatabaseAsJson() {
     JsonDocument doc;
     JsonArray root = doc.to<JsonArray>();
 
-    for (const auto& record : networkDatabase) {
-        if (record.lastPacket.messageId > 0) {
-            JsonObject obj = root.add<JsonObject>();
-            nodeRecordToJsonObject(record, obj);
+    if(xSemaphoreTake(meshMutex, portMAX_DELAY)){ // LOCK     
+        for (const auto& record : networkDatabase) {
+            if (record.lastPacket.messageId > 0) {
+                JsonObject obj = root.add<JsonObject>();
+                nodeRecordToJsonObject(record, obj);
+            }
         }
+        xSemaphoreGive(meshMutex); // UNLOCK
     }
 
     String output;
@@ -118,26 +123,30 @@ bool saveDatabaseToFS() {
         return false;
     }
 
-    // save current network status
-    File file = LittleFS.open("/db_backup.json", "w");
-    if (file) {
-        JsonDocument doc;
-        JsonArray root = doc.to<JsonArray>();
+    if(xSemaphoreTake(meshMutex, portMAX_DELAY)){ // LOCK
+        // save current network status
+        File file = LittleFS.open("/db_backup.json", "w");
+        if (file) {
+            JsonDocument doc;
+            JsonArray root = doc.to<JsonArray>();
 
-        for (const auto& record : networkDatabase) {
-            if (record.nodeID > 0) {   // only save active nodes
-                JsonObject obj = root.add<JsonObject>();
-                nodeRecordToJsonObject(record, obj);
+            for (const auto& record : networkDatabase) {
+                if (record.nodeID > 0) {   // only save active nodes
+                    JsonObject obj = root.add<JsonObject>();
+                    nodeRecordToJsonObject(record, obj);
+                }
             }
+            if (serializeJson(doc, file) == 0) {
+                Serial.println("DB: Failed to write current status to DB file.");
+            }
+            file.close();
+        } 
+        else {
+            Serial.println("DB: Failed to open DB file for writing.");
+            xSemaphoreGive(meshMutex); // UNLOCK
+            return false;
         }
-        if (serializeJson(doc, file) == 0) {
-            Serial.println("DB: Failed to write current status to DB file.");
-        }
-        file.close();
-    } 
-    else {
-        Serial.println("DB: Failed to open DB file for writing.");
-        return false;
+        xSemaphoreGive(meshMutex); // UNLOCK
     }
 
     // save circular history log
@@ -169,32 +178,36 @@ bool saveDatabaseToFS() {
 }
 
 void getDatabaseFromFS() {
-    // restore current network status
-    if (LittleFS.exists("/db_backup.json")) {
-        File file = LittleFS.open("/db_backup.json", "r");
-        if (file) {
-            JsonDocument doc;
-            DeserializationError error = deserializeJson(doc, file);
-            if (!error) {
-                JsonArray array = doc.as<JsonArray>();
-                for (JsonObject obj : array) {
-                    uint32_t id = obj["id"];
-                    if (id < MAX_NODES) {
-                        jsonObjectToNodeRecord(obj, networkDatabase[id]);
+    if(xSemaphoreTake(meshMutex, portMAX_DELAY)){ // LOCK
+        // restore current network status
+        if (LittleFS.exists("/db_backup.json")) {
+            File file = LittleFS.open("/db_backup.json", "r");
+            if (file) {
+                JsonDocument doc;
+                DeserializationError error = deserializeJson(doc, file);
+                if (!error) {
+                    JsonArray array = doc.as<JsonArray>();
+                    for (JsonObject obj : array) {
+                        uint32_t id = obj["id"];
+                        if (id < MAX_NODES) {
+                            jsonObjectToNodeRecord(obj, networkDatabase[id]);
+                        }
                     }
+                    Serial.println("DB: Live status restored.");
                 }
-                Serial.println("DB: Live status restored.");
+                else {
+                    Serial.println("DB: Deserialization error in db_backup.json");
+                    xSemaphoreGive(meshMutex); // UNLOCK
+                    return;
+                }
+                file.close();
             }
-            else {
-                Serial.println("DB: Deserialization error in db_backup.json");
-                return;
-            }
-            file.close();
         }
+    xSemaphoreGive(meshMutex); // UNLOCK
     }
 
     // restore circular history log
-    if (LittleFS.exists("/history_backup.json")) {
+    if(LittleFS.exists("/history_backup.json")) {
         File logFile = LittleFS.open("/history_backup.json", "r");
         if (logFile) {
             JsonDocument logDoc;
@@ -262,23 +275,32 @@ bool clearAlertLatch(uint8_t nodeId) {
 
 
 void clearAllData() {
-    LittleFS.remove("/db_backup.json");
-    LittleFS.remove("/history_backup.json");
-    networkDatabase.fill({});
-    eventLog.fill({});
-    logHead = 0;
-    Serial.println("DB: Persistent storage wiped.");
+    if(xSemaphoreTake(meshMutex, portMAX_DELAY)){ // LOCK
+        LittleFS.remove("/db_backup.json");
+        LittleFS.remove("/history_backup.json");
+        networkDatabase.fill({});
+        eventLog.fill({});
+        logHead = 0;
+        Serial.println("DB: Persistent storage wiped.");
+        xSemaphoreGive(meshMutex); // UNLOCK
+    }
 }
 
 int findNodeIndexByMAC(uint8_t* mac) {
-    for (int i = 0; i < networkDatabase.size(); i++) {
-        if (memcmp(networkDatabase[i].MACAddress, mac, 6) == 0) {
-            return i;
+    if(xSemaphoreTake(meshMutex, portMAX_DELAY)){ // LOCK
+        for (int i = 0; i < networkDatabase.size(); i++) {
+            if (memcmp(networkDatabase[i].MACAddress, mac, 6) == 0) {
+                xSemaphoreGive(meshMutex); // UNLOCK
+                return i;
+            }
         }
+        xSemaphoreGive(meshMutex); // UNLOCK
     }
     return -1;
 }
 
+
+// TODO: consolidate into one function with appendToNetwork
 uint8_t addNodeToNetworkDatabase(MeshPacket firstTransmission){
     NodeRecord newNode;
     newNode.nodeID = numNodesInNetwork++;
