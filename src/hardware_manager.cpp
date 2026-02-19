@@ -6,6 +6,7 @@
 // --- RADIO COMM ---
 RH_RF95 rf95(RFM95_CS, RFM95_INT); // radio driver
 RHMesh* manager;
+uint32_t messagesSent;
 
 // --- SCREEN ---
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);

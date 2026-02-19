@@ -20,7 +20,7 @@
 // radio
 extern RH_RF95 rf95;
 extern RHMesh* manager;
-extern double messagesSent;
+extern uint32_t messagesSent;
 // screen
 extern Adafruit_SSD1306 display;
 extern int brightness;
