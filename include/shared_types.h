@@ -24,7 +24,7 @@ typedef enum {
     // --- COMM ---
     ASSIGNMENT_ID       = 0x04, // sends nodeID as byte
     ASSIGNMENT_MAC      = 0x05, // sends MAC as byte  
-    REQUEST_TO_ASSIGN   = 0x06 // sends MAC as byte
+    REQUEST_TO_ASSIGN   = 0x06  // sends MAC as byte
 } DataType;
 
 // payload holder

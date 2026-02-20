@@ -17,6 +17,7 @@
 #define SCREEN_HEIGHT   64
 #define UNASSIGNED_ID   254
 #define VIEWER_ID       1  
+#define RADIO_POWER     10 // TX Power: 5 to 23 dBm. 23 is max power. 
 
 typedef enum{
     CAMERA,
@@ -62,10 +63,10 @@ void sensorListen();
 /// @brief This function sends the node assignment packet
 /// @param desiredID The nodeID that needs to be assigned to the node
 /// @param nodeMAC The MAC of the node that needs to be assigned
-void assignNodeID(uint8_t desiredID, uint8_t* nodeMAC);
+void sendAssignNodeID(uint8_t desiredID, uint8_t* nodeMAC);
 
 /// @brief This function is called by the sensor node when it hasn't been assigned a nodeID in the network. It runs this every minute until it is assigned
-void requestAssignment();
+void sendRequestAssignment();
 
 /// @brief This function sends a very basic message just saying "I'm alive!"
 void sendHeartBeat();

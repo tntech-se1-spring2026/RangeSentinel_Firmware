@@ -1,7 +1,7 @@
 #include "hardware_manager.h"
 #include "database_manager.h"
 
-uint8_t nodeID                         = UNASSIGNED_ID; // 254 is the nodeID that all sensor nodes get set to while waiting to be assigned as a node in the mesh from the viewer node
+uint8_t nodeID                          = UNASSIGNED_ID; // 254 is the nodeID that all sensor nodes get set to while waiting to be assigned as a node in the mesh from the viewer node
 unsigned long currentMS                 = 0;
 
 // sensor node
@@ -15,6 +15,7 @@ unsigned long lastHeartBeat             = 0;
 SensorType sensor; // holds the type of sensor
 void setup() {
     Serial.begin(115200);
+
     setupRadio(nodeID);
 
     // TODO: Add logic to decide what kind of sensor node
@@ -38,12 +39,14 @@ void loop() {
     // requests assignment every 10 seconds while we aren't connected to the network.
     if(nodeID == UNASSIGNED_ID && (currentMS - lastReq > tenSecInterval)){
         lastReq = millis();
-        requestAssignment();
+        Serial.println("Requesting Assignment: " + String(nodeID));
+        sendRequestAssignment();
     }
 
     // send heartbeat every min
-    if(currentMS - lastHeartBeat > oneMinInterval){
+    if(currentMS - lastHeartBeat > oneMinInterval && nodeID != UNASSIGNED_ID){
         lastHeartBeat = millis();
+        Serial.println("Sending heartbeat: " + String(nodeID));
         sendHeartBeat();
     }
     
@@ -77,6 +80,9 @@ void setup(){
 
     setupScreen();
 
+    // initialize the mutex to protect db shared btwn cores
+    meshMutex = xSemaphoreCreateMutex();
+
     // start LittleFS. Halt if failed
     if (!LittleFS.begin(true)){
         Serial.println("An error occurred while mounting LittleFS");
@@ -84,8 +90,7 @@ void setup(){
     }
     getDatabaseFromFS();
 
-    // initialize the mutex to protect db shared btwn cores
-    meshMutex = xSemaphoreCreateMutex();
+    
     
     nodeID = VIEWER_ID; // hard set the nodeID of the viewing node to one
     setupRadio(nodeID);

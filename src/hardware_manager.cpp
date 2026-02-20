@@ -116,19 +116,21 @@ void updateScreen() {
 void setupRadio(uint8_t nodeID){
     messagesSent = 0;
 
+    SPI.begin(SPI_SCK, SPI_MISO, SPI_MOSI, SPI_SS);
+
     // Manual reset of the LoRa radio to ensure a clean state
-    Serial.println("Reseting radio");
     pinMode(RFM95_RST, OUTPUT);
-    digitalWrite(RFM95_RST, LOW);  // Pull low to reset
-    delay(10); 
-    digitalWrite(RFM95_RST, HIGH); // Pull high to operate
+    digitalWrite(RFM95_RST, HIGH);
+    delay(10);
+    digitalWrite(RFM95_RST, LOW);
+    delay(10);
+    digitalWrite(RFM95_RST, HIGH);
     delay(10);
 
-    // Initialize the Mesh Manager & LoRa driver (rf95)
-    manager = new RHMesh(rf95, nodeID);
-    if (!manager->init()){
-        Serial.println("Mesh init failed! Check wiring.");
-        while(true); // Halt if hardware isn't responding
+    pinMode(RFM95_INT, INPUT);
+
+    if(!rf95.init()){
+        Serial.println("RF95 Driver init failed!");
     }
 
     // set Radio frequency
@@ -136,9 +138,26 @@ void setupRadio(uint8_t nodeID){
         Serial.println("setFrequency failed");
     }
 
-    // TX Power: 5 to 23 dBm. 23 is max power. 
     // false = don't use RFO pin, use PA_BOOST (standard for SX1276)
-    rf95.setTxPower(10, false);
+    rf95.setTxPower(RADIO_POWER, false);
+
+    // This helps the driver align its timing with the hardware
+    if (!rf95.setModemConfig(RH_RF95::Bw125Cr45Sf128)) {
+        Serial.println("Invalid modem config!");
+    }
+
+    manager = new RHMesh(rf95, nodeID);
+
+    if (!manager->init()) {
+        Serial.println("Mesh init failed!");
+        while(true);
+    }
+
+    // // hard setting the nodeID
+    // manager->setThisAddress(nodeID);
+    // manager->setHeaderFrom(nodeID);
+
+    Serial.println("Radio Setup with ID: " + String(nodeID));
 }
 
 void receiverListen(void* pvParameters){
@@ -168,12 +187,12 @@ void receiverListen(void* pvParameters){
                     if(nodeIdx != -1){
                         // Node is known, send back its existing ID
                         Serial.printf("Known MAC found. Re-assigning ID: %d\n", networkDatabase[nodeIdx].nodeID);
-                        assignNodeID(networkDatabase[nodeIdx].nodeID, req2Asn->payload.asMAC); 
+                        sendAssignNodeID(networkDatabase[nodeIdx].nodeID, req2Asn->payload.asMAC); 
                     }else{
                         // TODO: eventually we will allow the user to accept the node to be added, for now we will just add it
                         // Add new node to database & assign it's ID
                         uint8_t newID = addNodeToNetworkDatabase(incomingPacket);
-                        assignNodeID(newID, req2Asn->payload.asMAC); // Send to broadcast or MAC-specific logic
+                        sendAssignNodeID(newID, req2Asn->payload.asMAC); // Send to broadcast or MAC-specific logic
                     }
                 } 
             }else{
@@ -223,9 +242,11 @@ void sensorListen(){
                     // check if our mac matches
                     if(memcmp(assignedMAC->payload.asMAC, sensorMAC, 6) == 0){
                         // assign your new ID
-                        rf95.setThisAddress(assignedID->payload.asByte);
-                        manager->setThisAddress(assignedID->payload.asByte);
-                        manager->clearRoutingTable();
+                        nodeID = assignedID->payload.asByte;
+                        rf95.setThisAddress(nodeID);
+                        manager->setThisAddress(nodeID);
+                        
+                        Serial.println("Set my ID to: " + String(nodeID));
 
                         // send heartbeat as confirmation
                         sendHeartBeat();
@@ -239,7 +260,7 @@ void sensorListen(){
     }
 }
 
-void assignNodeID(uint8_t desiredID, uint8_t* nodeMAC){
+void sendAssignNodeID(uint8_t desiredID, uint8_t* nodeMAC){
     // Create readings
     Reading assignmentIDData;
     assignmentIDData.type = ASSIGNMENT_ID;
@@ -258,18 +279,18 @@ void assignNodeID(uint8_t desiredID, uint8_t* nodeMAC){
 
     // Serialize Packet
     uint8_t rawMessage[RH_MESH_MAX_MESSAGE_LEN];
-    uint8_t numBytesInSerializedPacket = serializePacket(assignmentPacket, rawMessage, RH_MESH_MAX_MESSAGE_LEN);
+    uint8_t numBytes = serializePacket(assignmentPacket, rawMessage, RH_MESH_MAX_MESSAGE_LEN);
 
     Serial.printf("Broadcasting assignment: ID %d to MAC\n", desiredID);
 
     // Sends the assignment 3 times as a broadcast. The sensor will know to assign itself based on the MAC.
     for(int i = 0; i < 3; i++){
-        uint8_t error = manager->sendto(rawMessage, numBytesInSerializedPacket, RH_BROADCAST_ADDRESS);
+        uint8_t error = manager->sendto(rawMessage, numBytes, RH_BROADCAST_ADDRESS);
         delay(200);
     }
 }
 
-void requestAssignment(){
+void sendRequestAssignment(){
     // Create readings
     Reading request;
     request.type = REQUEST_TO_ASSIGN;
@@ -285,14 +306,40 @@ void requestAssignment(){
 
     // Serialize Packet
     uint8_t rawMessage[RH_MESH_MAX_MESSAGE_LEN];
-    uint8_t numBytesInSerializedPacket = serializePacket(requestPacket, rawMessage, RH_MESH_MAX_MESSAGE_LEN);
+
+    uint8_t numBytes = serializePacket(requestPacket, rawMessage, RH_MESH_MAX_MESSAGE_LEN);
+
+    Serial.printf("Serialization result: %u bytes. Max allowed: %d\n", numBytes, RH_MESH_MAX_MESSAGE_LEN);
+
+    if (numBytes == 0) {
+        Serial.println("Error: Serialization returned 0!");
+        return;
+    }
+
+    // Try a raw driver
+    bool rawSuccess = rf95.send(rawMessage, numBytes);
+    if (rawSuccess) {
+        rf95.waitPacketSent();
+        Serial.println("Raw driver send worked!");
+    } else {
+        Serial.println("Raw driver send FAILED.");
+    }
+
+    // Try datagram
+    if (manager->RHReliableDatagram::sendto(rawMessage, numBytes, RH_BROADCAST_ADDRESS)) {
+        Serial.println("RHReliableDatagram send worked!");
+    } else {
+        Serial.println("RHReliableDatagram send failed");
+    }
 
     // Send Packet
-    uint8_t error = manager->sendto(rawMessage, numBytesInSerializedPacket, VIEWER_ID); // send to viewer nodeID
+    bool error = manager->sendto(rawMessage, numBytes, RH_BROADCAST_ADDRESS); // send to viewer nodeID
 
     // Check for error
     if (error != RH_ROUTER_ERROR_NONE) {
-        Serial.println("Message failed to clear radio buffer.");
+        Serial.printf("Mesh broadcast failed! Error code: %d\n", error);
+    } else {
+        Serial.println("Mesh broadcast successful.");
     }
 }
 
@@ -318,7 +365,7 @@ void sendHeartBeat(){
 
     // Check for error
     if (error != RH_ROUTER_ERROR_NONE) {
-        Serial.println("Message failed to clear radio buffer.");
+        Serial.println("Heartbeat message failed.");
     }
 }
 
