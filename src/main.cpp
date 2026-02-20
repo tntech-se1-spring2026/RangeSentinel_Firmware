@@ -82,10 +82,11 @@ void setup(){
         Serial.println("An error occurred while mounting LittleFS");
         while(true);
     }
-    getDatabaseFromFS();
 
     // initialize the mutex to protect db shared btwn cores
     meshMutex = xSemaphoreCreateMutex();
+
+    getDatabaseFromFS();
     
     nodeID = VIEWER_ID; // hard set the nodeID of the viewing node to one
     setupRadio(nodeID);
