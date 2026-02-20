@@ -75,7 +75,9 @@ unsigned long lastScreenUpdate = 0;
 void setup(){
     Serial.begin(115200);
 
-    setupScreen();
+    #ifndef WEB_TEST_MODE
+        setupScreen();
+    #endif
 
     // start LittleFS. Halt if failed
     if (!LittleFS.begin(true)){
@@ -85,11 +87,13 @@ void setup(){
 
     // initialize the mutex to protect db shared btwn cores
     meshMutex = xSemaphoreCreateMutex();
-
     getDatabaseFromFS();
-    
     nodeID = VIEWER_ID; // hard set the nodeID of the viewing node to one
-    setupRadio(nodeID);
+    
+    #ifndef WEB_TEST_MODE
+        setupRadio(nodeID);
+    #endif
+
     // run the listen function exclusively on core 0
     xTaskCreatePinnedToCore(
         receiverListen,
