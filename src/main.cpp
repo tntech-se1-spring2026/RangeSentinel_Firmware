@@ -92,18 +92,18 @@ void setup(){
     
     #ifndef WEB_TEST_MODE
         setupRadio(nodeID);
-    #endif
 
-    // run the listen function exclusively on core 0
-    xTaskCreatePinnedToCore(
-        receiverListen,
-        "ReceiverListenTask",
-        5000,
-        NULL,
-        1,
-        NULL,
-        0
-    );
+        // run the listen function exclusively on core 0
+        xTaskCreatePinnedToCore(
+            receiverListen,
+            "ReceiverListenTask",
+            5000,
+            NULL,
+            1,
+            NULL,
+            0
+        );
+    #endif
 
     // start access point
     WiFi.softAP("Range-Sentinel-Gateway", WiFiPassword); // (SSID, Password)
@@ -118,10 +118,12 @@ void loop() {
     currentMS = millis();
     
     // update OLED screen
-    if(currentMS - lastScreenUpdate > fiveSecInterval){ // if it has been 5 sec since the last screen update
-        updateScreen();
-        lastScreenUpdate = millis();
-    }
+    #ifndef WEB_TEST_MODE
+        if(currentMS - lastScreenUpdate > fiveSecInterval){ // if it has been 5 sec since the last screen update
+            updateScreen();
+            lastScreenUpdate = millis();
+        }
+    #endif
 
     dnsServer.processNextRequest();
 
