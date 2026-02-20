@@ -4,10 +4,10 @@ export function create_card(node_status) {
 
     if (node_status.sensors[1].val < 3) {
         bg_color = "#ff2e2e";
-        bat_icon = "img/battery-empty.svg";
+        bat_icon = "img/battery_empty.svg";
     } else {
         bg_color = "#2cdf42";
-        bat_icon = "img/battery-full.svg";
+        bat_icon = "img/battery_frame_full.svg";
     }
 
     let trigger;
@@ -37,7 +37,7 @@ export function create_card(node_status) {
                         <img style="color: black" src="${bat_icon}" alt="Battery Level:" />
                         <em class="ms-1">97%</em>
                     </span>
-                    <em class="last-seen ms-3 mt-2">2 days ago</em>
+                    <em class="last-seen ms-3">2 days ago</em>
                 </div>
             </div>
 
@@ -59,7 +59,7 @@ export function create_card(node_status) {
                         <img style="color: black" src="${bat_icon}" alt="Battery Level:" />
                         <em class="ms-1">97%</em>
                     </span>
-                    <em class="last-seen ms-3 mt-2">2 days ago</em>
+                    <em class="last-seen ms-3">2 days ago</em>
                 </div>
             </div>
     </div>
