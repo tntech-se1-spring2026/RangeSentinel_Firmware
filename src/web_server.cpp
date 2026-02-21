@@ -89,8 +89,11 @@ void startBackend(AsyncWebServer *server) {
         }
     });
 
-    bool simulationActive = false;  // simulation is off by default
-    server->on("web/simulate", HTTP_POST, [&simulationActive](AsyncWebServerRequest *request) {
+    server->on("/web/simulate", HTTP_GET, [](AsyncWebServerRequest *request) {
+        request->send(200, "text/plain", simulationActive ? "Simulation is ACTIVE" : "Simulation is INACTIVE");
+});
+
+    server->on("/web/simulate", HTTP_POST, [](AsyncWebServerRequest *request) {
         simulationActive = !simulationActive;
         request->send(200, "text/plain", simulationActive ? "Simulation ON": "Simulation Off");
     });

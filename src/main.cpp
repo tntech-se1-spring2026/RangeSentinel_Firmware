@@ -72,6 +72,10 @@ unsigned long previousMillis = 0;
 // holds the time of the last screen update; used to check if we need to update screen again
 unsigned long lastScreenUpdate = 0;
 
+bool simulationActive = false;
+unsigned long lastSimMS = 0;  // timer for simulation frequency
+const long simInterval = 5000;  // generate dummy data every 5 seconds
+
 void setup(){
     Serial.begin(115200);
 
@@ -126,6 +130,11 @@ void loop() {
     #endif
 
     dnsServer.processNextRequest();
+
+    if (simulationActive && currentMS - lastSimMS >= simInterval) {
+        simulateNetworkActivity();  // call dummy data generator
+        lastSimMS = currentMS;
+    }
 
     // TODO: Add logic that prevents this from updating if there haven't been any changes
     // periodic saving

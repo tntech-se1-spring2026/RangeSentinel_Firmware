@@ -10,6 +10,7 @@
 #define HTTP_PORT 80 // standard HTTP port
 
 extern AsyncWebSocket ws;
+extern bool simulationActive;
 
 /// @brief Initialize the web interface
 /// @param server Pointer to the AsyncWebServer instance

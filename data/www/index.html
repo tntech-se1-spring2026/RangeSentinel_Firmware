@@ -115,9 +115,54 @@
         </div>
     </div> <!-- End of Second Row -->
 </div>
+    <div class="container mt-3">
+        <div class="row">
+            <div class="col-12">
+                <div class="card shadow-sm border-info">
+                    <div class="card-body d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title">Simulation Control</h5>
+                            <p class="card-text">System State: <strong id="simStatusText">Checking...</strong></p>
+                        </div>
+                        <button class="btn btn-outline-info" onclick="toggleSimulation()">Toggle Sim</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
     <button class="btn btn-primary" type="button" id="test-button">Test</button>
     <script type="module" src="js/main.js"></script>
     <script>
-    </script>
+    // Logic to talk to the ESP32
+    async function toggleSimulation() {
+        await fetch('/web/simulate', { method: 'POST' });
+        updateSimUI();
+    }
+
+    async function updateSimUI() {
+        const response = await fetch('/web/simulate');
+        const status = await response.text();
+        const el = document.getElementById('simStatusText');
+        el.innerText = status;
+        el.style.color = status.includes(" ACTIVE") ? "#28a745" : "#6c757d";
+    }
+
+    // Run on load
+    window.onload = updateSimUI;
+
+    // Open the real-time pipe to the ESP32
+    const socket = new WebSocket('ws://' + window.location.hostname + '/ws');
+
+    // This function runs every time the simulation sends dummy data
+    socket.onmessage = function(event) {
+        console.log("REAL-TIME DATA RECEIVED:");
+        const data = JSON.parse(event.data);
+        console.log(data); // This will show you the battery/door values
+    };
+
+    socket.onopen = function() {
+        console.log("WebSocket Connection Established!");
+    };
+</script>
 </body>
 </html>
