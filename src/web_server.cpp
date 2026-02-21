@@ -88,6 +88,12 @@ void startBackend(AsyncWebServer *server) {
             request->send(400, "text/plain", "Error: Missing id parameter");
         }
     });
+
+    bool simulationActive = false;  // simulation is off by default
+    server->on("web/simulate", HTTP_POST, [&simulationActive](AsyncWebServerRequest *request) {
+        simulationActive = !simulationActive;
+        request->send(200, "text/plain", simulationActive ? "Simulation ON": "Simulation Off");
+    });
 }
 
 void startAPI(AsyncWebServer *server) {
