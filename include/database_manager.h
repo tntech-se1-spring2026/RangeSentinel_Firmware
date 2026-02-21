@@ -76,4 +76,7 @@ uint8_t addNodeToNetworkDatabase(MeshPacket firstTransmission);
 /// @return True if successful, False otherwise
 bool updateNodeName(uint8_t nodeId, const char* newName);
 
+/// @brief Generates fake sensor data for testing frontend integration
+void simulateNetworkActivity();
+
 #endif

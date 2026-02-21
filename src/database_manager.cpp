@@ -333,3 +333,19 @@ bool updateNodeName(uint8_t nodeId, const char* newName) {
     Serial.printf("DB Node %d renamed to '%s'\n", nodeId, newName);
     return true;
 }
+
+void simulateNetworkActivity() {
+    MeshPacket dummyPacket;
+    dummyPacket.messageId = millis() / 1000;  // use time as fake ID
+    dummyPacket.readingCount = 2;
+    
+    // fake battery reading
+    dummyPacket.readings[0].type = BATTERY_SENSOR;
+    dummyPacket.readings[0].payload.asFloat = 3.5 + ((rand() % 70) / 100.0);  // 3.5V to 4.2V
+
+    // fake door reading (occasionally toggles)
+    dummyPacket.readings[1].type = DOOR_SENSOR;
+    dummyPacket.readings[1].payload.asBool = (rand() % 10 > 8);  // 20% chance of door opening
+
+    updateDatabase(dummyPacket, 2);
+}
