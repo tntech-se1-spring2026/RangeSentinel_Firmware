@@ -10,10 +10,14 @@
         .chosenFont {
             font-family: helvetica;
         }
+        .highlight {
+            box-shadow: 0 0 20px red;
+            transition: 0.3s ease-in-out;
+        }
     </style>
 </head>
 <body style="background-color: #1d5e66;">
-    <nav class="navbar navbar-expand-lg bg-body-tertiary">
+    <nav class="navbar navbar-expand-lg bg-body-tertiary sticky-top">
         <div class="container-fluid">
             <a class="navbar-brand">
                 <div class="banner">
@@ -21,22 +25,18 @@
                 </div>
             </a>
             <div class="btn-group dropstart" id="action_items"> <!-- button to open notification dropdown -->
-                <button type="button" class="btn btn-secondary dropdown-toggle" data-bs-toggle="dropdown" data-bs-auto-close="false" aria-expanded="false">
+                <button type="button" class="btn btn-secondary dropdown-toggle" data-bs-toggle="dropdown" data-bs-auto-close="inside" aria-expanded="false">
                     <img src="img/notifications.svg" style="margin-right: 10px;" alt="notifications">
                 </button>
                 <ul class="dropdown-menu" id="notification-dropdown"> <!-- dropdown menu for notifications -->
-                    <li><a class="dropdown-item" href="#" style="display: none;">No new notifications</a></li>
-                    <li><a class="dropdown-item chosenFont" href="#">Notification 1 (normal)</a></li>
-                    <li><a class="dropdown-item active chosenFont" href="#">Notification 2 (active)</a></li>
-                    <li><a class="dropdown-item-text chosenFont" href="#">Notification 3 (text) </a></li>
-                    <p class="chosenFont">You can also do freeform text in dropdowns</p>
+                    
                 </ul>
                 <img src="img/notifications_unread.svg" style="margin-right: 10px; display: none;" alt="unread notifications"> <!-- icon for unread notifications -->
             </div>
         </div>
     </nav>
 
-    <div class="container mt-4"> <!-- remember, container -> row -> col -> card -->
+    <div class="container g-3 mt-4"> <!-- remember, container -> row -> col -> card -->
         <h1 class="chosenFont" style="color: #fafafa;">Device Status</h1>
         <button class="btn btn-primary mb-3" id="notif-button">Get Notif</button> <!-- button to test notification retrieval -->
         <p class="chosenFont" style="color: #fafafa;" id="device-total"><!-- device total --></p>
