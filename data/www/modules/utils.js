@@ -10,43 +10,14 @@ export function create_card(node_status) {
         bat_icon = "img/battery_frame_full.svg";
     }
 
-    let trigger;
-    let trigger_css = "";
-    if (node_status.door) {
-        trigger = "Alert"
-        trigger_css = "color: red;"
-    } else {
-        trigger = "Normal"
-    }
-    return `
-    <div class="col-md-4 justify-content-center d-flex">
-            <!-- Implementation of user-context node card -->
-            <div class="card w-auto text-center me-3">
-                <div class="card-header">
-                    <h5 class="float-start">${node_status.name}</h5>
-                    <img class="w-25 h-25 img-fluid float-end ms-3" src="/img/edit.svg" alt="Edit Device Name" />
-                    <p class="chosenFont id="${node_status.id}" style="display: none;">${node_status.id}</p> <!-- hidden element to store node ID for later use -->
-                </div>
-                <div class="card-body">
-                    <img width="40em" src="/img/door_front.svg" alt="Sensor Type: Gate" />
-                    <hr class="mb-4" />
-                    <h3>Closed</h3>
-                </div>
-                <div class="card-footer text-muted d-flex align-items-center">
-                    <span>
-                        <img style="color: black" src="${bat_icon}" alt="Battery Level:" />
-                        <em class="ms-1">97%</em>
-                    </span>
-                    <em class="last-seen ms-3">2 days ago</em>
-                </div>
-            </div>
-
+    if (node_status.alert) {
+        return `
+        <div class="col-6 col-md-4 d-flex">
             <!-- Implementation of user-context node card (WITH ALERT)-->
-            <div id="${node_status.id}" class="card w-auto text-center me-3 bg-warning">
+            <div id="${node_status.id}" class="card w-100 text-center bg-warning">
                 <div class="card-header">
                     <h5 class="float-start">${node_status.name}</h5>
                     <img class="w-25 h-25 img-fluid float-end ms-3" src="/img/edit.svg" alt="Edit Device Name" />
-                    <p class="chosenFont" style="display: none;">${node_status.id}</p> <!-- hidden element to store node ID for later use -->
                     <button class="alert-clear btn btn-sm float-end" style="background-color: #4a4a4a; border: none; color: white;">Clear</button>
                 </div>
                 <div class="card-body">
@@ -62,12 +33,37 @@ export function create_card(node_status) {
                     <em class="last-seen ms-3">2 days ago</em>
                 </div>
             </div>
-    </div>
-    `
+        </div>`
+    } else {
+        return `
+        <div class="col-6 col-md-4 justify-content-center d-flex">
+            <!-- Implementation of user-context node card -->
+            <div id="${node_status.id}" class="card w-100 text-center">
+                <div class="card-header">
+                    <h5 class="float-start">${node_status.name}</h5>
+                    <img class="w-25 h-25 img-fluid float-end ms-3" src="/img/edit.svg" alt="Edit Device Name" />
+                    <button class="alert-clear btn btn-sm float-end" style="background-color: #4a4a4a; border: none; color: white;">Clear</button>
+                </div>
+                <div class="card-body">
+                    <img width="40em" src="/img/door_front.svg" alt="Sensor Type: Gate" />
+                    <hr class="mb-4" />
+                    <h3>Closed</h3>
+                </div>
+                <div class="card-footer text-muted d-flex align-items-center">
+                    <span>
+                        <img style="color: black" src="${bat_icon}" alt="Battery Level:" />
+                        <em class="ms-1">97%</em>
+                    </span>
+                    <em class="last-seen ms-3">2 days ago</em>
+                </div>
+            </div>
+        </div>`
+    }
+    
 }
 
-export function createNotification(notification){
+export function createNotification(notif){
     return `
-    <li><a class="dropdown-item chosenFont" href="#">${notification.alert}</a></li>
+    <li><a class="dropdown-item chosenFont" data-node-id="${notif.id}" href="#${notif.id}">${notif.alert}</a></li>
     `
 }
