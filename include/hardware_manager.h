@@ -79,6 +79,11 @@ float getBatteryVoltage();
 /// @returns returns the battery's current percentage
 int getBatteryPercentage();
 
+/// @brief calculates a battery percentage from a given voltage
+/// @param voltage a given voltage
+/// @returns integer from 1-100 indicating battery percentage
+int getBatteryPercentageFromV(float voltage);
+
 // --- REED SWITCH (DOOR SENSOR) ---
 /// @brief NOT FINISHED; CURRENTLY JUST PRINTS OUT WHEN OPEN/CLOSED
 void reedSwitchLogic();

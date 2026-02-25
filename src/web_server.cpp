@@ -44,7 +44,18 @@ void startBackend(AsyncWebServer *server) {
         JsonDocument doc;
         deserializeJson(doc, getDatabaseAsJson());
 
-        response->getRoot() = doc.to<JsonArray>();
+        JsonDocument ret;
+
+        for (unsigned int i = 0; i < doc.size(); i++) {
+            ret[i] = doc[i];
+            for (unsigned int j = 0; j < doc[i]["sensors"].size(); j++) {
+                if (doc[i]["sensors"][j]["type"] == "battery") {
+                    doc[i]["sensors"][j]["type"]["battery"] = getBatteryPercentageFromV(doc[i]["sensors"][j]["val"]);
+                }
+            }
+        }
+
+        response->getRoot() = ret.to<JsonArray>();
         response->setLength();
 
         request->send(response);

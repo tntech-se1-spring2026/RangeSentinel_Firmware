@@ -341,6 +341,13 @@ int getBatteryPercentage(){
     return(constrain(percentage, 0, 100));
 }
 
+// TODO: Make this account for non linear discharging
+int getBatteryPercentageFromV(float voltage){
+    // Li-ion range: 4.2V (100%) down to 3.2V (0%)
+    int percentage = (int)((voltage - 3.2) / (4.2 - 3.2) * 100);
+    return(constrain(percentage, 0, 100));
+}
+
 void reedSwitchLogic(){
     int currentRSState = digitalRead(RS_PIN);
 
