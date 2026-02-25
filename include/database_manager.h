@@ -14,6 +14,7 @@
 */
 
 #include "shared_types.h"
+#include "hardware_manager.h"
 
 #include <LittleFS.h>
 
@@ -75,5 +76,8 @@ uint8_t addNodeToNetworkDatabase(MeshPacket firstTransmission);
 /// @param newName The custom string to assign as the name
 /// @return True if successful, False otherwise
 bool updateNodeName(uint8_t nodeId, const char* newName);
+
+/// @brief This function updates the viewer node's information in the database
+void viewerHeartBeatUpdate();
 
 #endif

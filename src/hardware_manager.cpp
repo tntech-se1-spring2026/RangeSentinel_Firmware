@@ -179,6 +179,7 @@ void receiverListen(void* pvParameters){
 
             // --- CASE 1: UNASSIGNED NODE (ID 254) ---
             if(fromAddress == UNASSIGNED_ID){
+                Serial.println("node is unassigned (from id 254)");
                 Reading* req2Asn = getReadingOfType(incomingPacket.readings, REQUEST_TO_ASSIGN);
                 
                 if(req2Asn){ // Check if it is sending a request to be assigned (if it wasn't requesting assignment, then this will be false)
@@ -192,10 +193,13 @@ void receiverListen(void* pvParameters){
                         // TODO: eventually we will allow the user to accept the node to be added, for now we will just add it
                         // Add new node to database & assign it's ID
                         uint8_t newID = addNodeToNetworkDatabase(incomingPacket);
+                        Serial.println("node is added to db");
+                        //Serial.println("ID given from function: " + String(newID));
                         sendAssignNodeID(newID, req2Asn->payload.asMAC); // Send to broadcast or MAC-specific logic
                     }
                 } 
             }else{
+                Serial.println("node is assigned (not from id 254)");
                 // --- CASE 2: ASSIGNED NODE ---
                 if(fromAddress > numNodesInNetwork){
                     // This happens if the Viewer rebooted and lost its memory
@@ -285,12 +289,18 @@ void sendAssignNodeID(uint8_t desiredID, uint8_t* nodeMAC){
 
     // Sends the assignment 3 times as a broadcast. The sensor will know to assign itself based on the MAC.
     for(int i = 0; i < 3; i++){
-        uint8_t error = manager->sendto(rawMessage, numBytes, RH_BROADCAST_ADDRESS);
+        bool error = manager->sendtoWait(rawMessage, numBytes, RH_BROADCAST_ADDRESS);
         delay(200);
+        if(error){
+            Serial.println("assign send failed!");
+        }
     }
 }
 
 void sendRequestAssignment(){
+    //TEMP: clear display
+    display.clearDisplay();
+
     // Create readings
     Reading request;
     request.type = REQUEST_TO_ASSIGN;
@@ -306,11 +316,8 @@ void sendRequestAssignment(){
 
     // Serialize Packet
     uint8_t rawMessage[RH_MESH_MAX_MESSAGE_LEN];
-
     uint8_t numBytes = serializePacket(requestPacket, rawMessage, RH_MESH_MAX_MESSAGE_LEN);
-
     Serial.printf("Serialization result: %u bytes. Max allowed: %d\n", numBytes, RH_MESH_MAX_MESSAGE_LEN);
-
     if (numBytes == 0) {
         Serial.println("Error: Serialization returned 0!");
         return;
@@ -321,26 +328,57 @@ void sendRequestAssignment(){
     if (rawSuccess) {
         rf95.waitPacketSent();
         Serial.println("Raw driver send worked!");
+        display.setTextSize(1);
+        display.setCursor(0, 2);
+        display.println(F("0"));
+        display.display();
     } else {
-        Serial.println("Raw driver send FAILED.");
+        Serial.println("Raw driver send FAILED."); 
     }
 
     // Try datagram
     if (manager->RHReliableDatagram::sendto(rawMessage, numBytes, RH_BROADCAST_ADDRESS)) {
         Serial.println("RHReliableDatagram send worked!");
+        display.setCursor(0, 14);
+        display.println(F("1"));
+        display.display();
     } else {
         Serial.println("RHReliableDatagram send failed");
     }
 
-    // Send Packet
-    bool error = manager->sendto(rawMessage, numBytes, RH_BROADCAST_ADDRESS); // send to viewer nodeID
-
+    // try sendtoWait
+    bool error = manager->sendtoWait(rawMessage, numBytes, RH_BROADCAST_ADDRESS);
     // Check for error
-    if (error != RH_ROUTER_ERROR_NONE) {
-        Serial.printf("Mesh broadcast failed! Error code: %d\n", error);
+    if (error == RH_ROUTER_ERROR_NONE) {
+        Serial.println("Mesh sendToWait broadcast successful.");
+        display.setCursor(0, 26);
+        display.println(F("2"));
+        display.display();
     } else {
-        Serial.println("Mesh broadcast successful.");
+        Serial.printf("Mesh sendToWait broadcast failed! Error code: %d\n", error);
     }
+
+    // try sendto
+    // Send Packet
+    error = manager->sendto(rawMessage, numBytes, RH_BROADCAST_ADDRESS); // send to viewer nodeID
+    // Check for error
+    if (error == RH_ROUTER_ERROR_NONE) {
+        Serial.println("Mesh sendto broadcast successful.");
+        display.setCursor(0, 38);
+        display.println(F("3"));
+        display.display();
+    } else {
+        Serial.printf("Mesh sendto broadcast failed! Error code: %d\n", error);
+    }
+
+    // display.setCursor(0, 50);
+    // display.println(F("4"));
+    // display.display();
+
+    // display.setCursor(0, 38);
+    // display.println(F("5"));
+    // display.display();
+
 }
 
 void sendHeartBeat(){
