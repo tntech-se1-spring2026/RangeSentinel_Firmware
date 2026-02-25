@@ -26,18 +26,24 @@ bool appendToNetwork(NodeRecord newStatus){
 }
 
 void updateDatabase(MeshPacket incoming, uint8_t nodeID){
-    if(xSemaphoreTake(meshMutex, portMAX_DELAY)){ // LOCK        
+    Serial.println("inside updateDatabase!");
+    if(xSemaphoreTake(meshMutex, portMAX_DELAY)){ // LOCK   
+        Serial.println("took mutex!");     
         NodeRecord& currentRecord = networkDatabase.at(nodeID - 1);
+        Serial.println("grabbed currentRecord");
 
         // only update if incoming is newer than what is already there
         if (incoming.messageId > currentRecord.lastPacket.messageId) {
+            Serial.println("messageID was greater! inside if");
             bool foundAlert = false;
 
             // look for alerts in the readings
             for (int i = 0; i < incoming.readingCount; i++) {
+                Serial.println("looping through readings!");
                 // save alert status to individual reading
                 incoming.readings[i].isAlert = evaluateAlert(incoming.readings[i]);
                 if (evaluateAlert(incoming.readings[i])) {
+                    Serial.println("alert found!");
                     foundAlert = true;
                 }
             }
@@ -51,14 +57,18 @@ void updateDatabase(MeshPacket incoming, uint8_t nodeID){
                 currentRecord.alertLatched = true;
             }
 
+            Serial.println("stored info!");
+
             // assign default name if it doesn't have one
             if (strlen(currentRecord.nodeName) == 0) {
+                Serial.println("assigned default name!");
                 snprintf(currentRecord.nodeName, sizeof(currentRecord.nodeName), "Node %d", nodeID);
             }
 
-                // add to history
-                eventLog[logHead] = currentRecord;
-                logHead = (logHead + 1) % MAX_LOG_ENTRIES;
+            // add to history
+            eventLog[logHead] = currentRecord;
+            logHead = (logHead + 1) % MAX_LOG_ENTRIES;
+            Serial.println("added to eventLog!");
 
             needsPersistence = true;
 
@@ -68,13 +78,18 @@ void updateDatabase(MeshPacket incoming, uint8_t nodeID){
             nodeRecordToJsonObject(currentRecord, obj);
             String output;
             serializeJson(updateDoc, output);
+            Serial.println("before ws.textALL");
             ws.textAll(output);
+            Serial.println("after ws.textAll");
             #endif
 
             // blankspace to keep logs aligned
-            Serial.printf("%s DB: Node %d updated & logged (Msg %d)\n", foundAlert ? "[ALERT!]" : "        ", nodeID, incoming.messageId);
-            xSemaphoreGive(meshMutex); // UNLOCK
+            Serial.printf("%s DB: Node %d updated & logged (Msg %d)\n", foundAlert ? "[ALERT!]" : "        ", nodeID, incoming.messageId); 
+        }else{
+            Serial.println("message ID was less :(");
         }
+        xSemaphoreGive(meshMutex); // UNLOCK
+        Serial.println("gave back mutex!");
     }
 }
 
@@ -336,8 +351,12 @@ bool updateNodeName(uint8_t nodeId, const char* newName) {
 }
 
 void viewerHeartBeatUpdate(){
+    Serial.println("inside viewerHeartBeatUpdate function");
     if(xSemaphoreTake(meshMutex, portMAX_DELAY)){ // LOCK
+        Serial.println("viewerHeartBeatUpdate takes mutex");
         networkDatabase[0].lastPacket.readings[0].payload.asFloat = getBatteryVoltage();
+        Serial.println("viewerHeartBeatUpdate finished posting its voltage");
         xSemaphoreGive(meshMutex); // UNLOCK
+        Serial.println("viewerHeartBeatUpdate gave back mutex");
     }
 }

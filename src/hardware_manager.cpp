@@ -208,6 +208,7 @@ void receiverListen(void* pvParameters){
                     // TODO: Tell the node to re-identify or just add it on the fly
                     
                 }else{
+                    Serial.println("about to update the db with packet from node: " + String(fromAddress) + "!");
                     // Update the database with the latest readings
                     updateDatabase(incomingPacket, fromAddress);
                 }
@@ -373,6 +374,7 @@ bool sendReedSwitchMessage(int switchState){
 
     // create packet
     MeshPacket doorPacket;
+    doorPacket.messageId = messagesSent++;
     doorPacket.readingCount = 1;
     doorPacket.readings[0] = batteryReading;
     doorPacket.readings[0] = doorReading;
