@@ -36,6 +36,7 @@ extern Adafruit_SSD1306 display;
 extern int brightness;
 // door sensor
 extern int prevRSState;
+extern int currentRSState;
 // WiFi
 extern String WiFiPassword;
 #pragma endregion
@@ -69,7 +70,13 @@ void sendAssignNodeID(uint8_t desiredID, uint8_t* nodeMAC);
 void sendRequestAssignment();
 
 /// @brief This function sends a very basic message just saying "I'm alive!"
-void sendHeartBeat();
+/// @returns returns true if message failed
+bool sendHeartBeat();
+
+/// @brief This functions ends a message containing the door switch status
+/// @param switchState the current state of the switch
+/// @returns returns true if message failed
+bool sendReedSwitchMessage(int switchState);
 
 // --- BATTERY ---
 /// @brief calculates the battery's current voltage

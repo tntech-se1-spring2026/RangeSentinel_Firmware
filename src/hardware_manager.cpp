@@ -9,11 +9,14 @@ RHMesh* manager;
 double messagesSent = 0;
 
 // --- SCREEN ---
-Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
-int brightness = 255;
+#ifdef IS_LILYGO_T3
+    Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+    int brightness = 255;
+#endif
 
 // --- DOOR SENSOR ---
 int prevRSState = -1; // Set to -1 so it prints the initial state once
+int currentRSState = 0;
 #pragma endregion
 
 #pragma region FUNCTIONS
@@ -104,6 +107,7 @@ void updateScreen() {
     display.setTextSize(1);
     display.setCursor(14, 57);
     display.printf("NODES: %u", numNodesInNetwork);
+    //Serial.println("update screen: numNodesInNetwork: " + String(numNodesInNetwork));
     
     // Voltage: Bottom Right
     display.setCursor(98, 57);
@@ -179,7 +183,6 @@ void receiverListen(void* pvParameters){
 
             // --- CASE 1: UNASSIGNED NODE (ID 254) ---
             if(fromAddress == UNASSIGNED_ID){
-                Serial.println("node is unassigned (from id 254)");
                 Reading* req2Asn = getReadingOfType(incomingPacket.readings, REQUEST_TO_ASSIGN);
                 
                 if(req2Asn){ // Check if it is sending a request to be assigned (if it wasn't requesting assignment, then this will be false)
@@ -199,11 +202,11 @@ void receiverListen(void* pvParameters){
                     }
                 } 
             }else{
-                Serial.println("node is assigned (not from id 254)");
                 // --- CASE 2: ASSIGNED NODE ---
                 if(fromAddress > numNodesInNetwork){
                     // This happens if the Viewer rebooted and lost its memory
                     // TODO: Tell the node to re-identify or just add it on the fly
+                    
                 }else{
                     // Update the database with the latest readings
                     updateDatabase(incomingPacket, fromAddress);
@@ -251,10 +254,6 @@ void sensorListen(){
                         manager->setThisAddress(nodeID);
                         
                         Serial.println("Set my ID to: " + String(nodeID));
-
-                        // send heartbeat as confirmation
-                        sendHeartBeat();
-                        lastHeartBeat = millis();
                     }
                 }
             }
@@ -298,9 +297,6 @@ void sendAssignNodeID(uint8_t desiredID, uint8_t* nodeMAC){
 }
 
 void sendRequestAssignment(){
-    //TEMP: clear display
-    display.clearDisplay();
-
     // Create readings
     Reading request;
     request.type = REQUEST_TO_ASSIGN;
@@ -317,71 +313,23 @@ void sendRequestAssignment(){
     // Serialize Packet
     uint8_t rawMessage[RH_MESH_MAX_MESSAGE_LEN];
     uint8_t numBytes = serializePacket(requestPacket, rawMessage, RH_MESH_MAX_MESSAGE_LEN);
-    Serial.printf("Serialization result: %u bytes. Max allowed: %d\n", numBytes, RH_MESH_MAX_MESSAGE_LEN);
     if (numBytes == 0) {
         Serial.println("Error: Serialization returned 0!");
         return;
     }
 
-    // Try a raw driver
-    bool rawSuccess = rf95.send(rawMessage, numBytes);
-    if (rawSuccess) {
-        rf95.waitPacketSent();
-        Serial.println("Raw driver send worked!");
-        display.setTextSize(1);
-        display.setCursor(0, 2);
-        display.println(F("0"));
-        display.display();
-    } else {
-        Serial.println("Raw driver send FAILED."); 
-    }
-
-    // Try datagram
-    if (manager->RHReliableDatagram::sendto(rawMessage, numBytes, RH_BROADCAST_ADDRESS)) {
-        Serial.println("RHReliableDatagram send worked!");
-        display.setCursor(0, 14);
-        display.println(F("1"));
-        display.display();
-    } else {
-        Serial.println("RHReliableDatagram send failed");
-    }
-
-    // try sendtoWait
+    // send packet
     bool error = manager->sendtoWait(rawMessage, numBytes, RH_BROADCAST_ADDRESS);
+
     // Check for error
-    if (error == RH_ROUTER_ERROR_NONE) {
-        Serial.println("Mesh sendToWait broadcast successful.");
-        display.setCursor(0, 26);
-        display.println(F("2"));
-        display.display();
-    } else {
+    if(error != RH_ROUTER_ERROR_NONE) {
         Serial.printf("Mesh sendToWait broadcast failed! Error code: %d\n", error);
     }
-
-    // try sendto
-    // Send Packet
-    error = manager->sendto(rawMessage, numBytes, RH_BROADCAST_ADDRESS); // send to viewer nodeID
-    // Check for error
-    if (error == RH_ROUTER_ERROR_NONE) {
-        Serial.println("Mesh sendto broadcast successful.");
-        display.setCursor(0, 38);
-        display.println(F("3"));
-        display.display();
-    } else {
-        Serial.printf("Mesh sendto broadcast failed! Error code: %d\n", error);
-    }
-
-    // display.setCursor(0, 50);
-    // display.println(F("4"));
-    // display.display();
-
-    // display.setCursor(0, 38);
-    // display.println(F("5"));
-    // display.display();
-
 }
 
-void sendHeartBeat(){
+bool sendHeartBeat(){
+    Serial.println("Sending heartbeat");
+
     // create reading
     Reading batteryReading;
     batteryReading.type = BATTERY_SENSOR;
@@ -403,8 +351,48 @@ void sendHeartBeat(){
 
     // Check for error
     if (error != RH_ROUTER_ERROR_NONE) {
-        Serial.println("Heartbeat message failed.");
+        Serial.println("Heartbeat message failed. Sending again");
+        return true;
+    }else{
+        Serial.println("Heartbeat message succeeded.");
     }
+
+    return false;
+}
+
+bool sendReedSwitchMessage(int switchState){
+    // create readings
+    Reading batteryReading;
+    batteryReading.type = BATTERY_SENSOR;
+    float voltage = getBatteryVoltage();
+    batteryReading.payload.asFloat = voltage;
+    
+    Reading doorReading;
+    doorReading.type = DOOR_SENSOR;
+    doorReading.payload.asBool = switchState;
+
+    // create packet
+    MeshPacket doorPacket;
+    doorPacket.readingCount = 1;
+    doorPacket.readings[0] = batteryReading;
+    doorPacket.readings[0] = doorReading;
+
+    // serialize
+    uint8_t rawMessage[RH_MESH_MAX_MESSAGE_LEN];
+    uint8_t numBytesInSerializedPacket = serializePacket(doorPacket, rawMessage, RH_MESH_MAX_MESSAGE_LEN);
+
+    // send
+    uint8_t error = manager->sendtoWait(rawMessage, numBytesInSerializedPacket, VIEWER_ID);
+
+    // Check for error
+    if (error != RH_ROUTER_ERROR_NONE) {
+        Serial.println("Door message failed. Sending again");
+        return true;
+    }else{
+        Serial.println("Door message succeeded.");
+    }
+
+    return false;
 }
 
 // --- BATTERY ---
@@ -427,17 +415,22 @@ int getBatteryPercentage(){
 }
 
 void reedSwitchLogic(){
-    int currentRSState = digitalRead(RS_PIN);
+    // grab door state
+    currentRSState = digitalRead(RS_PIN);
 
     // Only do something if the state changed
     if (currentRSState != prevRSState) {
-        if (currentRSState != LOW) {
+        if(currentRSState != LOW){
             // Magnet is NEAR (Completes the circuit to GND)
             Serial.println("Status: DOOR CLOSED");
-        } else{
+        }else{
             // Magnet is GONE (Internal pull-up makes it HIGH)
             Serial.println("Status: DOOR OPEN!");
+            
         }
+
+        // send message until it works
+        while(sendReedSwitchMessage(currentRSState));
 
         // Update the memory
         prevRSState = currentRSState;

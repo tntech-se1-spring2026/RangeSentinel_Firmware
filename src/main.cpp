@@ -16,13 +16,11 @@ SensorType sensor; // holds the type of sensor
 void setup() {
     Serial.begin(115200);
 
-    setupScreen();
-
     setupRadio(nodeID);
 
     // TODO: Add logic to decide what kind of sensor node
 
-    // TODO: door logic
+    // Door logic
     pinMode(RS_PIN, INPUT_PULLUP); // set the reed switch's pin's mode
 
     // TODO: Cam logic
@@ -41,21 +39,25 @@ void loop() {
     // requests assignment every 10 seconds while we aren't connected to the network.
     if(nodeID == UNASSIGNED_ID && (currentMS - lastReq > tenSecInterval)){
         lastReq = millis();
-        Serial.println("Requesting Assignment: " + String(nodeID));
+        Serial.println("Requesting Assignment");
         sendRequestAssignment();
     }
 
     // send heartbeat every min
-    if(currentMS - lastHeartBeat > oneMinInterval && nodeID != UNASSIGNED_ID){
+    if((currentMS - lastHeartBeat > oneMinInterval || currentMS < oneMinInterval && lastHeartBeat == 0) && nodeID != UNASSIGNED_ID){
         lastHeartBeat = millis();
-        Serial.println("Sending heartbeat: " + String(nodeID));
-        sendHeartBeat();
+        
+        while(sendHeartBeat()); // continuously send until it succeeds. 
     }
     
-    // delay prevents bouncing
-    // if(currentMS - lastRSMS > fiftyMSInterval){
-    //     reedSwitchLogic();
-    // }
+    // reed switch logic
+    if(nodeID != UNASSIGNED_ID){
+        // delay prevents bouncing
+        if(currentMS - lastRSMS > fiftyMSInterval){
+            reedSwitchLogic();
+        }
+    }
+    
 }
 #endif
 
@@ -93,10 +95,9 @@ void setup(){
         while(true);
     }
 
-    setupRadio(nodeID);
     nodeID = VIEWER_ID; // hard set the nodeID of the viewing node to one
-    #ifndef WEB_TEST_MODE
-
+    //#ifndef WEB_TEST_MODE
+        setupRadio(nodeID);
         // run the listen function exclusively on core 0
         xTaskCreatePinnedToCore(
             receiverListen,
@@ -107,7 +108,7 @@ void setup(){
             NULL,
             0
         );
-    #endif
+    //#endif
 
     // start access point
     WiFi.softAP("Range-Sentinel-Gateway", WiFiPassword); // (SSID, Password)
@@ -141,7 +142,7 @@ void setup(){
     viewerNode.lastPacket = fakePacket;
     
     appendToNetwork(viewerNode);
-    numNodesInNetwork = 1;
+    numNodesInNetwork++;
     //Serial.println("Viewer node just added to db. numNodes in Network: " + String(numNodesInNetwork));
 }
 
@@ -172,6 +173,7 @@ void loop() {
         lastHeartBeat = millis();
         Serial.println("Heartbeat Viewer update");
         viewerHeartBeatUpdate();
+        //Serial.println("heartbeat numNodesInNetwork: " + String(numNodesInNetwork));
     }
 
     ws.cleanupClients();

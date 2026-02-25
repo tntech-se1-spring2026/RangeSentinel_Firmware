@@ -40,7 +40,8 @@ struct Reading {
     //uint8_t sensorIndex;      // currently unused; will be used if we have multiple of the same sensors (if used uncomment usage in serialization functions)
     DataType type;              // format identifier
     Data payload;               // actual data
-    bool isAlert;
+
+    bool isAlert;               // not actually sent; rather evaluated when received.
 };
 
 // what is sent over LoRa
