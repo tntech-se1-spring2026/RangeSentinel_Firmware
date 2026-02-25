@@ -26,7 +26,7 @@
                 </div>
             </a>
             <div class="btn-group dropstart" id="action_items"> <!-- button to open notification dropdown -->
-                <button type="button" class="btn btn-secondary dropdown-toggle" data-bs-toggle="dropdown" data-bs-auto-close="inside" aria-expanded="false">
+                <button type="button" class="btn btn-link dropdown-toggle" data-bs-toggle="dropdown" data-bs-auto-close="inside" aria-expanded="false">
                     <img src="img/notifications.svg" style="margin-right: 10px;" alt="notifications">
                 </button>
                 <ul class="dropdown-menu" id="notification-dropdown"> <!-- dropdown menu for notifications -->
@@ -40,7 +40,6 @@
     <div class="container g-3 mt-4"> <!-- remember, container -> row -> col -> card -->
         <h1 class="chosenFont" style="color: #fafafa;">Device Status</h1>
         <button class="btn btn-primary mb-3" id="notif-button">Get Notif</button> <!-- button to test notification retrieval -->
-        <p class="chosenFont" style="color: #fafafa;" id="device-total"><!-- device total --></p>
         <div class="row g-3" id="node-cards"></div> <!-- defines the rows for cards -->
     </div>
     <script type="module" src="js/main.js"></script>

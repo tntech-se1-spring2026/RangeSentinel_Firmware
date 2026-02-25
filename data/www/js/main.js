@@ -18,6 +18,34 @@ document.addEventListener("click", function(event) { //Event delegation for aler
         }
     }
 });
+document.addEventListener("click", function (event) { //Event delegation for edit name buttons
+    const editBtn = event.target.closest(".edit-name");
+
+    if (!editBtn) return;
+
+    const card = editBtn.closest(".card");
+    const title = card.querySelector(".card-title");
+    const currentName = title.textContent;
+    title.innerHTML = `
+        <input type="text"
+               class="form-control form-control-sm name-input"
+               value="${currentName}">`;
+    const input = title.querySelector(".name-input");
+    input.focus();
+});
+document.addEventListener("keydown", function (event) { //Event delegation for name input fields
+    if (!event.target.classList.contains("name-input")) return;
+
+    if (event.key === "Enter") { //When enter is pressed, update the card title and log the change
+        const input = event.target;
+        const newName = input.value.trim();
+        const card = input.closest(".card");
+        const nodeId = card.id;
+        const title = card.querySelector(".card-title");
+        title.textContent = newName;
+        console.log(`Renamed node ${nodeId} to ${newName}`);
+    }
+});
 
 function updateAll() {
   nodes.update();

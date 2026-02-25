@@ -28,8 +28,8 @@ export function create_card(node_status) {
         <!-- Implementation of user-context node card (WITH ALERT)-->
         <div id="${node_status.id}" class="card w-100 text-center ${cardColour}">
             <div class="card-header">
-                <h5 class="float-start">${node_status.name}</h5>
-                <button class="btn btn-link" type="button"><img class="w-5 h-50 img-fluid float-end ms-3" src="/img/edit.svg" alt="Edit Device Name" /></button>
+                <h5 class="float-start card-title">${node_status.name}</h5>
+                <button class="btn btn-link edit-name" type="button"><img class="w-50 h-50 img-fluid float-end ms-3" src="/img/edit.svg" alt="Edit Device Name" /></button>
                 <button class="alert-clear btn btn-sm float-end" style="background-color: #4a4a4a; border: none; color: white;">Clear</button>
             </div>
             <div class="card-body">
