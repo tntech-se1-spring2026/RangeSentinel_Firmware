@@ -5,21 +5,64 @@ Data is stored in JSON format to be human readable, easily accessible via the we
 
 ### 1. Core Data Structure
 
-All sensor data is based on the `NodeStatus` C++ struct.
+The system uses a **Tagged Union** pattern to separate what is sent over LoRa and what is on-device storage.
+
+**A. MeshPacket**
+Tailored for LoRa. Contains only the essential sensor data and dynamically packs bytes based on the `DataType`.
 
 ```cpp
-struct NodeStatus {
-    uint32_t nodeId;         // Unique identifier for the sensor (1-MAX_NODES)
-    uint32_t messageId;      // Incremental number to prevent duplicates
-    float batteryVoltage;
-    bool motionDetected;
-    bool doorOpen;
-    char nodeName[20];
-    unsigned long lastSeen;  // Relative timestamp (millis) of last contact
+typedef enum {
+    OTHER               = 0x00, 
+    DOOR_SENSOR         = 0x01, // sends open as bool
+    MOTION_SENSOR       = 0x02, // sends motion as bool
+    BATTERY_SENSOR      = 0x03, // sends voltage as float
+    ASSIGNMENT_ID       = 0x04, // sends nodeID as byte
+    ASSIGNMENT_MAC      = 0x05, // sends MAC as byte  
+    REQUEST_TO_ASSIGN   = 0x06, // sends MAC as byte
+    SENSOR_TYPE_ERROR   = 0xFF
+} DataType;
+
+// payload holder
+typedef union {
+    bool asBool;
+    float asFloat;
+    uint8_t asByte;
+    MacAddress asMAC;
+} Data;
+
+// single sensor event
+struct Reading {
+    //uint8_t sensorIndex;      // currently unused; will be used if we have multiple of the same sensors (if used uncomment usage in serialization functions)
+    DataType type;              // format identifier
+    Data payload;               // actual data
+    bool isAlert;
+};
+
+// what is sent over LoRa
+struct MeshPacket {
+    uint32_t messageId;
+    uint8_t readingCount;
+    Reading readings[MAX_SENSORS_PER_PACKET];
 };
 ```
 
-### 2. In addition to the website files, we hold two distinct files in Flash memory:
+**B. NodeRecord** Wraps the packet with metadata that is _not_ sent over radio to save bandwidth. Used for Viewing node and JSON web output.
+
+```cpp
+// metadata not sent over radio (will be stored in viewing node for comparison)
+struct NodeRecord {
+    uint8_t nodeID;
+    MeshPacket lastPacket;
+    char nodeName[20];
+    uint8_t MACAddress[6];
+    unsigned long lastSeen;  // local timestamp
+    bool hasActiveAlert;  // global alert status for the node (live status)
+    bool alertLatched;  // tracks if an alert hasn't been cleared yet
+};
+```
+
+### 2. JSON Storage & API Formats
+In addition to the website files, we hold two distinct files in Flash memory:
 
 `db_backup.json` (Live Status)
 Stores the most recent state of each active node.
@@ -28,15 +71,19 @@ Stores the most recent state of each active node.
 
 ```json
 [
-{
+  {
     "id": 1,
-    "mId": 42,
-    "batt": 3.95,
-    "motion": false,
-    "door": true,
     "name": "Front Gate",
-    "ls": 154200
-}
+    "ls": 154200,
+    "mId": 42,
+    "alert": false,
+    "latched": false,
+    "mac": "AA:BB:CC:11:22:33",
+    "sensors": [
+      { "type": "door", "val": true, "alert": false },
+      { "type": "batt", "val": 3.95, "alert": false }
+    ]
+  }
 ]
 ```
 
@@ -50,20 +97,55 @@ Stores the circular buffer history to show an activity feed.
 {
     "head": 3,
     "data": [
-        { "id": 1, "mId": 40, "batt": 3.96, "motion": true, "door": false, "name": "Front Gate", "ls": 150000 },
-        { "id": 2, "mId": 12, "batt": 4.10, "motion": false, "door": true, "name": "Back Porch", "ls": 152000 }
+        { 
+            "id": 1, 
+            "name": "Front Gate", 
+            "ls": 150000,
+            "mId": 40, 
+            "alert": true,
+            "latched": true,
+            "mac": "AA:BB:CC:11:22:33",
+            "sensors": [
+                { "type": "motion", "val": true, "alert": true }
+            ]
+        },
+        { 
+            "id": 2, 
+            "name": "Back Porch", 
+            "ls": 152000,
+            "mId": 12, 
+            "alert": false,
+            "latched": false,
+            "mac": "11:22:33:AA:BB:CC",
+            "sensors": [
+                { "type": "door", "val": false, "alert": false },
+                { "type": "batt", "val": 4.10, "alert": false }
+            ]
+        }
     ]
 }
 ```
 
 ### 3. Table for Translation from C++ variable to JSON key:
 
+**Meta-Data Fields**
 | C++ Variable | JSON Key | Type | Description |
 | :--- | :--- | :--- | :--- |
-| `nodeId` | `id` | `int` | Unique Node ID |
-| `messageId` | `mId` | `int` | Message number |
-| `batteryVoltage` | `batt` | `float` | Voltage |
-| `motionDetected` | `motion` | `bool` | Motion trigger status |
-| `doorOpen` | `door` | `bool` | Door status |
-| `nodeName` | `name` | `string` | Name |
-| `lastSeen` | `ls` | `long` | Timestamp in milliseconds (since booted) |
+| nodeId | id | int | Unique Node ID | 
+| lastPacket.messageId | mId | int | Message number | 
+| nodeName | name | string | Name (Stored locally) |
+| lastSeen | ls | long | Timestamp since booted in milliseconds |
+| lastPacket.readings[] | sensors | array | List of sensor objects |
+| hasActiveAlert | alert | bool | True if currently in an alert state |
+| alertLatched | latched | bool | True if an alert has been sent but not cleared |
+| MACAddress | mac | string | 6-byte hardware MAC converted to a string |
+
+---
+
+**Sensor Fields**
+| C++ Variable | JSON Key | Type | Description | 
+| :--- | :--- | :--- | :--- | 
+| sensorIndex | idx | int | Which sensor on the board | 
+| type | type | string | Enum converted to string ("door", "motion", "batt", "error", "assign_id", "assign_mac", "req_assign", "unknown") | 
+| payload | val | mixed | value (bool, float, or int depending on type) |
+| isAlert | alert | bool | True is this specific reading triggered an alert | 
