@@ -80,7 +80,9 @@ unsigned long lastScreenUpdate = 0;
 void setup(){
     Serial.begin(115200);
 
-    setupScreen();
+    #ifndef WEB_TEST_MODE
+        setupScreen();
+    #endif
 
     // initialize the mutex to protect db shared btwn cores
     meshMutex = xSemaphoreCreateMutex();
@@ -90,20 +92,22 @@ void setup(){
         Serial.println("An error occurred while mounting LittleFS");
         while(true);
     }
-    getDatabaseFromFS();
 
-    nodeID = VIEWER_ID; // hard set the nodeID of the viewing node to one
     setupRadio(nodeID);
-    // run the listen function exclusively on core 0
-    xTaskCreatePinnedToCore(
-        receiverListen,
-        "ReceiverListenTask",
-        5000,
-        NULL,
-        1,
-        NULL,
-        0
-    );
+    nodeID = VIEWER_ID; // hard set the nodeID of the viewing node to one
+    #ifndef WEB_TEST_MODE
+
+        // run the listen function exclusively on core 0
+        xTaskCreatePinnedToCore(
+            receiverListen,
+            "ReceiverListenTask",
+            5000,
+            NULL,
+            1,
+            NULL,
+            0
+        );
+    #endif
 
     // start access point
     WiFi.softAP("Range-Sentinel-Gateway", WiFiPassword); // (SSID, Password)
@@ -145,10 +149,12 @@ void loop() {
     currentMS = millis();
     
     // update OLED screen
-    if(currentMS - lastScreenUpdate > fiveSecInterval){ // if it has been 5 sec since the last screen update
-        updateScreen();
-        lastScreenUpdate = millis();
-    }
+    #ifndef WEB_TEST_MODE
+        if(currentMS - lastScreenUpdate > fiveSecInterval){ // if it has been 5 sec since the last screen update
+            updateScreen();
+            lastScreenUpdate = millis();
+        }
+    #endif
 
     dnsServer.processNextRequest();
 
