@@ -156,12 +156,6 @@ void setupRadio(uint8_t nodeID){
         Serial.println("Mesh init failed!");
         while(true);
     }
-
-    // // hard setting the nodeID
-    // manager->setThisAddress(nodeID);
-    // manager->setHeaderFrom(nodeID);
-
-    Serial.println("Radio Setup with ID: " + String(nodeID));
 }
 
 void receiverListen(void* pvParameters){
@@ -196,8 +190,6 @@ void receiverListen(void* pvParameters){
                         // TODO: eventually we will allow the user to accept the node to be added, for now we will just add it
                         // Add new node to database & assign it's ID
                         uint8_t newID = addNodeToNetworkDatabase(incomingPacket);
-                        Serial.println("node is added to db");
-                        //Serial.println("ID given from function: " + String(newID));
                         sendAssignNodeID(newID, req2Asn->payload.asMAC); // Send to broadcast or MAC-specific logic
                     }
                 } 
@@ -208,7 +200,6 @@ void receiverListen(void* pvParameters){
                     // TODO: Tell the node to re-identify or just add it on the fly
                     
                 }else{
-                    Serial.println("about to update the db with packet from node: " + String(fromAddress) + "!");
                     // Update the database with the latest readings
                     updateDatabase(incomingPacket, fromAddress);
                 }
@@ -428,7 +419,6 @@ void reedSwitchLogic(){
         }else{
             // Magnet is GONE (Internal pull-up makes it HIGH)
             Serial.println("Status: DOOR OPEN!");
-            
         }
 
         // send message until it works

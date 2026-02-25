@@ -2,7 +2,7 @@
 #define PINS_H
 
 // UNCOMMENT the line below when flashing the devboard
-//#define IS_LILYGO_T3
+#define IS_LILYGO_T3
 
 #ifdef IS_LILYGO_T3
     /* * --- LORA RADIO PINS (SX1276) --- */
