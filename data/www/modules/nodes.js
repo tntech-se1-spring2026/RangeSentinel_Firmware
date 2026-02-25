@@ -10,7 +10,7 @@ export async function update(){
         console.log(element);
         document.querySelector('#node-cards').insertAdjacentHTML("beforeend", utils.create_card(element));
     });
-    document.querySelector('#device-total').innerHTML = node_statuses.length;
+    //document.querySelector('#device-total').innerHTML = node_statuses.length;
 }
 
 export async function test_notification(){

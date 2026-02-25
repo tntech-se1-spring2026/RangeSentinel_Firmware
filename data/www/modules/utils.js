@@ -1,65 +1,51 @@
 export function create_card(node_status) {
-    let bg_color;
-    let bat_icon;
+    let battValue = "";
+    let sensorIcon = "";
+    let bat_icon = "/img/battery_frame_full.svg";
+    let cardColour = "bg-light";
+    let openStatus = "";
+    let textColour = "";
 
-    if (node_status.sensors[1].val < 3) {
-        bg_color = "#ff2e2e";
-        bat_icon = "img/battery_empty.svg";
-    } else {
-        bg_color = "#2cdf42";
-        bat_icon = "img/battery_frame_full.svg";
-    }
+    node_status.sensors.forEach(sensor => {
+        if (sensor.type == "batt") {
+            if (sensor.val < 20) {
+                bat_icon = "/img/battery_empty.svg";
+            }
+            battValue = sensor.val + "%";
+        }
+        if (sensor.type == "door") {
+            sensorIcon = sensor.val == "open" ? "/img/door_open.svg" : "/img/door_front.svg";
+            openStatus = sensor.val == "open" ? "Open" : "Closed";
+            textColour = sensor.val == "open" ? "text-danger" : "text-dark";
+        } 
+        if (node_status.alert) {
+            cardColour = "bg-warning";
+        }
+    });
 
-    if (node_status.alert) {
-        return `
-        <div class="col-6 col-md-4 d-flex">
-            <!-- Implementation of user-context node card (WITH ALERT)-->
-            <div id="${node_status.id}" class="card w-100 text-center bg-warning">
-                <div class="card-header">
-                    <h5 class="float-start">${node_status.name}</h5>
-                    <img class="w-25 h-25 img-fluid float-end ms-3" src="/img/edit.svg" alt="Edit Device Name" />
-                    <button class="alert-clear btn btn-sm float-end" style="background-color: #4a4a4a; border: none; color: white;">Clear</button>
-                </div>
-                <div class="card-body">
-                    <img width="40em" src="/img/door_open.svg" alt="Sensor Type: Gate" />
-                    <hr class="mb-4" />
-                    <h3 class="text-danger">Open</h3>
-                </div>
-                <div class="card-footer text-muted d-flex align-items-center">
-                    <span>
-                        <img style="color: black" src="${bat_icon}" alt="Battery Level:" />
-                        <em class="ms-1">97%</em>
-                    </span>
-                    <em class="last-seen ms-3">2 days ago</em>
-                </div>
+    return `
+    <div class="col-6 col-md-4 justify-content-center d-flex">
+        <!-- Implementation of user-context node card (WITH ALERT)-->
+        <div id="${node_status.id}" class="card w-100 text-center ${cardColour}">
+            <div class="card-header">
+                <h5 class="float-start">${node_status.name}</h5>
+                <button class="btn btn-link" type="button"><img class="w-5 h-50 img-fluid float-end ms-3" src="/img/edit.svg" alt="Edit Device Name" /></button>
+                <button class="alert-clear btn btn-sm float-end" style="background-color: #4a4a4a; border: none; color: white;">Clear</button>
             </div>
-        </div>`
-    } else {
-        return `
-        <div class="col-6 col-md-4 justify-content-center d-flex">
-            <!-- Implementation of user-context node card -->
-            <div id="${node_status.id}" class="card w-100 text-center">
-                <div class="card-header">
-                    <h5 class="float-start">${node_status.name}</h5>
-                    <img class="w-25 h-25 img-fluid float-end ms-3" src="/img/edit.svg" alt="Edit Device Name" />
-                    <button class="alert-clear btn btn-sm float-end" style="background-color: #4a4a4a; border: none; color: white;">Clear</button>
-                </div>
-                <div class="card-body">
-                    <img width="40em" src="/img/door_front.svg" alt="Sensor Type: Gate" />
-                    <hr class="mb-4" />
-                    <h3>Closed</h3>
-                </div>
-                <div class="card-footer text-muted d-flex align-items-center">
-                    <span>
-                        <img style="color: black" src="${bat_icon}" alt="Battery Level:" />
-                        <em class="ms-1">97%</em>
-                    </span>
-                    <em class="last-seen ms-3">2 days ago</em>
-                </div>
+            <div class="card-body">
+                <img width="40em" src="${sensorIcon}" alt="Sensor Type: Gate" />
+                <hr class="mb-4" />
+                <h3 class="${textColour}">${openStatus}</h3>
             </div>
-        </div>`
-    }
-    
+            <div class="card-footer text-muted d-flex align-items-center">
+                <span>
+                    <img style="color: black" src="${bat_icon}" alt="Battery Level:" />
+                    <em class="ms-1">${battValue}</em>
+                </span>
+                <em class="last-seen ms-3">2 days ago</em>
+            </div>
+        </div>
+    </div>`
 }
 
 export function createNotification(notif){
