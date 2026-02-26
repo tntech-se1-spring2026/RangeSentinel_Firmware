@@ -8,114 +8,40 @@
     <script src="js/bootstrap.bundle.min.js"></script>
     <title>Range Sentinel</title>
     <style>
-        .card-body {
-            min-height: 140px;
+        .chosenFont {
+            font-family: helvetica;
         }
-        .card-value {
-            font-size: 2rem;
-            font-weight: 600;
+        .highlight {
+            box-shadow: 0 0 20px red;
+            transition: 0.3s ease-in-out;
         }
     </style>
 </head>
 <body style="background-color: #1d5e66;">
-    <nav class="navbar navbar-expand-lg bg-body-tertiary">
+    <nav class="navbar navbar-expand-lg bg-body-tertiary sticky-top">
         <div class="container-fluid">
             <a class="navbar-brand">
                 <div class="banner">
-                    <h1 style="color: #2d2d2d; font-family: helvetica;">Range Sentinel</h1>
+                    <h1 class="chosenFont" style="color: #2d2d2d;">Range Sentinel</h1>
                 </div>
             </a>
-            <div id="action_items">
-                <img src="img/notifications.svg" alt="notifications">
-                <img src="img/notifications_unread.svg" alt="unread notifications" style="display: none;">
-                <img src="img/menu.svg" alt="menu">
+            <div class="btn-group dropstart" id="action_items"> <!-- button to open notification dropdown -->
+                <button type="button" class="btn btn-link dropdown-toggle" data-bs-toggle="dropdown" data-bs-auto-close="inside" aria-expanded="false">
+                    <img src="img/notifications.svg" style="margin-right: 10px;" alt="notifications">
+                </button>
+                <ul class="dropdown-menu" id="notification-dropdown"> <!-- dropdown menu for notifications -->
+                    
+                </ul>
+                <img src="img/notifications_unread.svg" style="margin-right: 10px; display: none;" alt="unread notifications"> <!-- icon for unread notifications -->
             </div>
         </div>
     </nav>
 
-    <div class="container mt-4">
-    <h1 style="color: #fafafa; font-family: helvetica;">Status</h1>
-
-    <div class="row g-3"> <!-- First Row of 3 Cards -->
-        <!-- Card 1 -->
-        <div class="col-12 col-md-4">
-            <div class="card text-center shadow-sm">
-                <div class="card-body">
-                    <h5 class="card-title">Temperature</h5>
-                    <p class="card-value">23.5 °C</p>
-                    <p class="card-text text-muted">
-                        Last updated: 10s ago
-                    </p>
-                </div>
-            </div>
-        </div>
-        <!-- Card 2 -->
-        <div class="col-12 col-md-4">
-            <div class="card text-center shadow-sm">
-                <div class="card-body">
-                    <h5 class="card-title">Humidity</h5>
-                    <p class="card-value">56 %</p>
-                    <p class="card-text text-muted">
-                        Normal range
-                    </p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Card 3 -->
-        <div class="col-12 col-md-4">
-            <div class="card text-center shadow-sm">
-                <div class="card-body">
-                    <h5 class="card-title">Gate Sensor</h5>
-                    <p class="card-value text-success">Online</p>
-                    <p class="card-text text-muted">
-                        ESP32 connected
-                    </p>
-                </div>
-            </div>
-        </div>
-
-    </div> <!-- End of First Row -->
-    <div class="row g-3 mt-0"> <!-- Second Row of 2 Cards -->
-        <!-- Card 4 -->
-        <div class="col-12 col-md-4">
-            <div class="card text-center shadow-sm">
-                <div class="card-body">
-                    <h5 class="card-title">Device 1</h5>
-                    <p class="card-value text-danger">Offline</p>
-                    <p class="card-text text-muted">
-                        Last seen: 5 mins ago
-                    </p>
-                </div>
-            </div>
-        </div>
-        <!-- Card 5 -->
-        <div class="col-12 col-md-4">
-            <div class="card text-center shadow-sm">
-                <div class="card-body">
-                    <h5 class="card-title">Device 2</h5>
-                    <p class="card-value text-success">Online</p>
-                    <p class="card-text text-muted">
-                        Active for 2 weeks
-                    </p>
-                </div>
-            </div>
-        </div>
-        <!-- Card 6 -->
-        <div class="col-12 col-md-4">
-            <div class="card text-center shadow-sm">
-                <div class="card-body">
-                    <h5 class="card-title">Device 3</h5>
-                    <p class="card-value text-success">Online</p>
-                    <p class="card-text text-muted">
-                        Active for 5 days
-                    </p>
-                </div>
-            </div>
-        </div>
-    </div> <!-- End of Second Row -->
-</div>
-    <button class="btn btn-primary" type="button" id="test-button">Test</button>
+    <div class="container g-3 mt-4"> <!-- remember, container -> row -> col -> card -->
+        <h1 class="chosenFont" style="color: #fafafa;">Device Status</h1>
+        <button class="btn btn-primary mb-3" id="notif-button">Get Notif</button> <!-- button to test notification retrieval -->
+        <div class="row g-3" id="node-cards"></div> <!-- defines the rows for cards -->
+    </div>
     <script type="module" src="js/main.js"></script>
     <script>
     </script>
