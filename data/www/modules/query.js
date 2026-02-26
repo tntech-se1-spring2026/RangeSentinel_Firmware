@@ -26,7 +26,7 @@ export function ping_backend() {
 }
 
 export function get_nodes() {
-  return http_get(`http://${HOST_ADDRESS}:${HOST_PORT}/web/nodes-load`);
+  return http_get(`http://${HOST_ADDRESS}:${HOST_PORT}/web/nodes`);
 }
 
 export function get_node_by_id(nodeid) {
@@ -34,5 +34,5 @@ export function get_node_by_id(nodeid) {
 }
 
 export function get_node_notification(){
-  return http_get(`http://${HOST_ADDRESS}:${HOST_PORT}/web/get-notification`);
+  return http_get(`http://${HOST_ADDRESS}:${HOST_PORT}/web/notification`);
 }
