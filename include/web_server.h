@@ -2,6 +2,7 @@
 #define WEB_SERVER_H
 
 #include "database_manager.h"
+#include "hardware_manager.h"
 #include <LittleFS.h>
 #include <WebServer.h>
 #include <ESPAsyncWebServer.h>

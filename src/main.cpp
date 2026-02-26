@@ -43,11 +43,11 @@ void loop() {
         sendRequestAssignment();
     }
 
-    // send heartbeat every min
+    // send heartbeat every min ((if its been a minute OR if its hasn't been on for a min & we haven't sent a heartbeat yet) AND we are assigned)
     if((currentMS - lastHeartBeat > oneMinInterval || currentMS < oneMinInterval && lastHeartBeat == 0) && nodeID != UNASSIGNED_ID){
         lastHeartBeat = millis();
         
-        while(sendHeartBeat()); // continuously send until it succeeds. 
+        while(sendHeartBeat(currentRSState)); // continuously send until it succeeds. 
     }
     
     // reed switch logic
@@ -117,7 +117,6 @@ void setup(){
 
     dnsServer.start(DNS_PORT, "*", WiFi.softAPIP());
     startWebServer(&server);
-
 
     // create NodeStatus for viewer node
     NodeRecord viewerNode;

@@ -12,11 +12,11 @@ bool needsPersistence                               = false;
 size_t numNodesInNetwork                            = 0;
 SemaphoreHandle_t meshMutex                         = NULL;
 
-// TODO: consolidate into one function with addNodeToNetworkDatabase
 bool appendToNetwork(NodeRecord newStatus){
+    uint8_t index = newStatus.nodeID - 1;
     if(numNodesInNetwork < MAX_NODES){
         if(xSemaphoreTake(meshMutex, portMAX_DELAY)){ // LOCK 
-            networkDatabase[numNodesInNetwork] = newStatus;
+            networkDatabase[index] = newStatus;
             xSemaphoreGive(meshMutex); // UNLOCK
         }
         return true;
@@ -247,7 +247,7 @@ void getDatabaseFromFS() {
 bool evaluateAlert(const Reading& r) {
     switch (r.type) {
     case DOOR_SENSOR:
-        return r.payload.asBool == true;
+        return r.payload.asBool == false;
     case MOTION_SENSOR:
         return r.payload.asBool == true;
     case BATTERY_SENSOR:

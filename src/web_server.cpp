@@ -52,14 +52,42 @@ void startBackend(AsyncWebServer *server) {
 
     // exports node db
     server->on("/web/nodes", HTTP_GET, [](AsyncWebServerRequest *request) {
-        AsyncJsonResponse *response = new AsyncJsonResponse(true);  // true to expect array
+        // 1. Create response. 'true' means the root is an array [].
+        // Increase the buffer size (e.g., 4096) if your database is large!
+        AsyncJsonResponse *response = new AsyncJsonResponse(true);
+        
+        // 2. Get the actual live root of the response
+        JsonVariant root = response->getRoot();
 
-        JsonDocument doc;
-        deserializeJson(doc, getDatabaseAsJson());
+        // 3. Deserialize the string directly into the RESPONSE object
+        DeserializationError error = deserializeJson(root, getDatabaseAsJson());
 
-        response->getRoot() = doc.to<JsonArray>();
+        Serial.println(getDatabaseAsJson());
+
+        if (error) {
+            Serial.print("JSON Error: ");
+            Serial.println(error.f_str());
+            request->send(500, "text/plain", "JSON Parse Error");
+            return;
+        }
+
+        // 4. Modify the data in place (Battery Logic)
+        // 'root' now contains your array. We just loop through it.
+        JsonArray nodes = root.as<JsonArray>();
+        for (JsonObject node : nodes) {
+            JsonArray sensors = node["sensors"].as<JsonArray>();
+            for (JsonObject sensor : sensors) {
+                if (sensor["type"] == "batt" || sensor["type"] == "battery") {
+                    float voltage = sensor["val"];
+                    sensor["val"] = getBatteryPercentageFromV(voltage);
+                }
+            }
+        }
+
+        // TODO: add last seen logic
+
+        // 5. Finalize and send
         response->setLength();
-
         request->send(response);
     });
 
