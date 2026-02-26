@@ -26,7 +26,7 @@ bool appendToNetwork(NodeRecord newStatus){
 }
 
 void updateDatabase(MeshPacket incoming, uint8_t nodeID){
-    if(xSemaphoreTake(meshMutex, portMAX_DELAY)){ // LOCK        
+    if(xSemaphoreTake(meshMutex, portMAX_DELAY)){ // LOCK      
         NodeRecord& currentRecord = networkDatabase.at(nodeID - 1);
 
         // only update if incoming is newer than what is already there
@@ -56,9 +56,9 @@ void updateDatabase(MeshPacket incoming, uint8_t nodeID){
                 snprintf(currentRecord.nodeName, sizeof(currentRecord.nodeName), "Node %d", nodeID);
             }
 
-                // add to history
-                eventLog[logHead] = currentRecord;
-                logHead = (logHead + 1) % MAX_LOG_ENTRIES;
+            // add to history
+            eventLog[logHead] = currentRecord;
+            logHead = (logHead + 1) % MAX_LOG_ENTRIES;
 
             needsPersistence = true;
 
@@ -68,13 +68,15 @@ void updateDatabase(MeshPacket incoming, uint8_t nodeID){
             nodeRecordToJsonObject(currentRecord, obj);
             String output;
             serializeJson(updateDoc, output);
+            //Serial.println("before ws.textALL");
             ws.textAll(output);
+            //Serial.println("after ws.textAll");
             #endif
 
             // blankspace to keep logs aligned
-            Serial.printf("%s DB: Node %d updated & logged (Msg %d)\n", foundAlert ? "[ALERT!]" : "        ", nodeID, incoming.messageId);
-            xSemaphoreGive(meshMutex); // UNLOCK
+            Serial.printf("%s DB: Node %d updated & logged (Msg %d)\n", foundAlert ? "[ALERT!]" : "        ", nodeID, incoming.messageId); 
         }
+        xSemaphoreGive(meshMutex); // UNLOCK
     }
 }
 
@@ -303,7 +305,8 @@ int findNodeIndexByMAC(uint8_t* mac) {
 // TODO: consolidate into one function with appendToNetwork
 uint8_t addNodeToNetworkDatabase(MeshPacket firstTransmission){
     NodeRecord newNode;
-    newNode.nodeID = numNodesInNetwork++;
+    numNodesInNetwork++;
+    newNode.nodeID = numNodesInNetwork;
     newNode.lastPacket = firstTransmission;
     newNode.lastSeen = millis();
     memcpy(newNode.MACAddress, getReadingOfType(firstTransmission.readings, REQUEST_TO_ASSIGN)->payload.asMAC, 6);
@@ -332,4 +335,11 @@ bool updateNodeName(uint8_t nodeId, const char* newName) {
 
     Serial.printf("DB Node %d renamed to '%s'\n", nodeId, newName);
     return true;
+}
+
+void viewerHeartBeatUpdate(){
+    if(xSemaphoreTake(meshMutex, portMAX_DELAY)){ // LOCK
+        networkDatabase[0].lastPacket.readings[0].payload.asFloat = getBatteryVoltage();
+        xSemaphoreGive(meshMutex); // UNLOCK
+    }
 }

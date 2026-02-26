@@ -14,6 +14,7 @@
 */
 
 #include "shared_types.h"
+#include "hardware_manager.h"
 
 #include <LittleFS.h>
 
@@ -60,7 +61,7 @@ bool clearAlertLatch(uint8_t nodeId);
 /// @brief Wipes the databases (networkDatabase, eventLog, & LittleFS). This will be used for when the user makes a subtractive change to their network.
 void clearAllData();
 
-/// @brief This function returns the index of the node at the given MAC address; returns -1 if not found
+/// @brief This function returns the index of the node with the given MAC address in the networkDatabase; returns -1 if not found
 /// @param mac the MAC address of the node you are searching for
 /// @return Returns the index of the node with the given MAC; returns -1 if not found
 int findNodeIndexByMAC(uint8_t* mac);
@@ -75,5 +76,8 @@ uint8_t addNodeToNetworkDatabase(MeshPacket firstTransmission);
 /// @param newName The custom string to assign as the name
 /// @return True if successful, False otherwise
 bool updateNodeName(uint8_t nodeId, const char* newName);
+
+/// @brief This function updates the viewer node's information in the database
+void viewerHeartBeatUpdate();
 
 #endif

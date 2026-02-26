@@ -9,11 +9,14 @@ RHMesh* manager;
 double messagesSent = 0;
 
 // --- SCREEN ---
-Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
-int brightness = 255;
+#ifdef IS_LILYGO_T3
+    Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+    int brightness = 255;
+#endif
 
 // --- DOOR SENSOR ---
 int prevRSState = -1; // Set to -1 so it prints the initial state once
+int currentRSState = 0;
 #pragma endregion
 
 #pragma region FUNCTIONS
@@ -104,6 +107,7 @@ void updateScreen() {
     display.setTextSize(1);
     display.setCursor(14, 57);
     display.printf("NODES: %u", numNodesInNetwork);
+    //Serial.println("update screen: numNodesInNetwork: " + String(numNodesInNetwork));
     
     // Voltage: Bottom Right
     display.setCursor(98, 57);
@@ -116,19 +120,21 @@ void updateScreen() {
 void setupRadio(uint8_t nodeID){
     messagesSent = 0;
 
+    SPI.begin(SPI_SCK, SPI_MISO, SPI_MOSI, SPI_SS);
+
     // Manual reset of the LoRa radio to ensure a clean state
-    Serial.println("Reseting radio");
     pinMode(RFM95_RST, OUTPUT);
-    digitalWrite(RFM95_RST, LOW);  // Pull low to reset
-    delay(10); 
-    digitalWrite(RFM95_RST, HIGH); // Pull high to operate
+    digitalWrite(RFM95_RST, HIGH);
+    delay(10);
+    digitalWrite(RFM95_RST, LOW);
+    delay(10);
+    digitalWrite(RFM95_RST, HIGH);
     delay(10);
 
-    // Initialize the Mesh Manager & LoRa driver (rf95)
-    manager = new RHMesh(rf95, nodeID);
-    if (!manager->init()){
-        Serial.println("Mesh init failed! Check wiring.");
-        while(true); // Halt if hardware isn't responding
+    pinMode(RFM95_INT, INPUT);
+
+    if(!rf95.init()){
+        Serial.println("RF95 Driver init failed!");
     }
 
     // set Radio frequency
@@ -136,9 +142,20 @@ void setupRadio(uint8_t nodeID){
         Serial.println("setFrequency failed");
     }
 
-    // TX Power: 5 to 23 dBm. 23 is max power. 
     // false = don't use RFO pin, use PA_BOOST (standard for SX1276)
-    rf95.setTxPower(10, false);
+    rf95.setTxPower(RADIO_POWER, false);
+
+    // This helps the driver align its timing with the hardware
+    if (!rf95.setModemConfig(RH_RF95::Bw125Cr45Sf128)) {
+        Serial.println("Invalid modem config!");
+    }
+
+    manager = new RHMesh(rf95, nodeID);
+
+    if (!manager->init()) {
+        Serial.println("Mesh init failed!");
+        while(true);
+    }
 }
 
 void receiverListen(void* pvParameters){
@@ -168,12 +185,12 @@ void receiverListen(void* pvParameters){
                     if(nodeIdx != -1){
                         // Node is known, send back its existing ID
                         Serial.printf("Known MAC found. Re-assigning ID: %d\n", networkDatabase[nodeIdx].nodeID);
-                        assignNodeID(networkDatabase[nodeIdx].nodeID, req2Asn->payload.asMAC); 
+                        sendAssignNodeID(networkDatabase[nodeIdx].nodeID, req2Asn->payload.asMAC); 
                     }else{
                         // TODO: eventually we will allow the user to accept the node to be added, for now we will just add it
                         // Add new node to database & assign it's ID
                         uint8_t newID = addNodeToNetworkDatabase(incomingPacket);
-                        assignNodeID(newID, req2Asn->payload.asMAC); // Send to broadcast or MAC-specific logic
+                        sendAssignNodeID(newID, req2Asn->payload.asMAC); // Send to broadcast or MAC-specific logic
                     }
                 } 
             }else{
@@ -181,6 +198,7 @@ void receiverListen(void* pvParameters){
                 if(fromAddress > numNodesInNetwork){
                     // This happens if the Viewer rebooted and lost its memory
                     // TODO: Tell the node to re-identify or just add it on the fly
+                    
                 }else{
                     // Update the database with the latest readings
                     updateDatabase(incomingPacket, fromAddress);
@@ -223,13 +241,11 @@ void sensorListen(){
                     // check if our mac matches
                     if(memcmp(assignedMAC->payload.asMAC, sensorMAC, 6) == 0){
                         // assign your new ID
-                        rf95.setThisAddress(assignedID->payload.asByte);
-                        manager->setThisAddress(assignedID->payload.asByte);
-                        manager->clearRoutingTable();
-
-                        // send heartbeat as confirmation
-                        sendHeartBeat();
-                        lastHeartBeat = millis();
+                        nodeID = assignedID->payload.asByte;
+                        rf95.setThisAddress(nodeID);
+                        manager->setThisAddress(nodeID);
+                        
+                        Serial.println("Set my ID to: " + String(nodeID));
                     }
                 }
             }
@@ -239,7 +255,7 @@ void sensorListen(){
     }
 }
 
-void assignNodeID(uint8_t desiredID, uint8_t* nodeMAC){
+void sendAssignNodeID(uint8_t desiredID, uint8_t* nodeMAC){
     // Create readings
     Reading assignmentIDData;
     assignmentIDData.type = ASSIGNMENT_ID;
@@ -258,18 +274,21 @@ void assignNodeID(uint8_t desiredID, uint8_t* nodeMAC){
 
     // Serialize Packet
     uint8_t rawMessage[RH_MESH_MAX_MESSAGE_LEN];
-    uint8_t numBytesInSerializedPacket = serializePacket(assignmentPacket, rawMessage, RH_MESH_MAX_MESSAGE_LEN);
+    uint8_t numBytes = serializePacket(assignmentPacket, rawMessage, RH_MESH_MAX_MESSAGE_LEN);
 
     Serial.printf("Broadcasting assignment: ID %d to MAC\n", desiredID);
 
     // Sends the assignment 3 times as a broadcast. The sensor will know to assign itself based on the MAC.
     for(int i = 0; i < 3; i++){
-        uint8_t error = manager->sendto(rawMessage, numBytesInSerializedPacket, RH_BROADCAST_ADDRESS);
+        bool error = manager->sendtoWait(rawMessage, numBytes, RH_BROADCAST_ADDRESS);
         delay(200);
+        if(error){
+            Serial.println("assign send failed!");
+        }
     }
 }
 
-void requestAssignment(){
+void sendRequestAssignment(){
     // Create readings
     Reading request;
     request.type = REQUEST_TO_ASSIGN;
@@ -285,18 +304,24 @@ void requestAssignment(){
 
     // Serialize Packet
     uint8_t rawMessage[RH_MESH_MAX_MESSAGE_LEN];
-    uint8_t numBytesInSerializedPacket = serializePacket(requestPacket, rawMessage, RH_MESH_MAX_MESSAGE_LEN);
+    uint8_t numBytes = serializePacket(requestPacket, rawMessage, RH_MESH_MAX_MESSAGE_LEN);
+    if (numBytes == 0) {
+        Serial.println("Error: Serialization returned 0!");
+        return;
+    }
 
-    // Send Packet
-    uint8_t error = manager->sendto(rawMessage, numBytesInSerializedPacket, VIEWER_ID); // send to viewer nodeID
+    // send packet
+    bool error = manager->sendtoWait(rawMessage, numBytes, RH_BROADCAST_ADDRESS);
 
     // Check for error
-    if (error != RH_ROUTER_ERROR_NONE) {
-        Serial.println("Message failed to clear radio buffer.");
+    if(error != RH_ROUTER_ERROR_NONE) {
+        Serial.printf("Mesh sendToWait broadcast failed! Error code: %d\n", error);
     }
 }
 
-void sendHeartBeat(){
+bool sendHeartBeat(){
+    Serial.println("Sending heartbeat");
+
     // create reading
     Reading batteryReading;
     batteryReading.type = BATTERY_SENSOR;
@@ -318,8 +343,49 @@ void sendHeartBeat(){
 
     // Check for error
     if (error != RH_ROUTER_ERROR_NONE) {
-        Serial.println("Message failed to clear radio buffer.");
+        Serial.println("Heartbeat message failed. Sending again");
+        return true;
+    }else{
+        Serial.println("Heartbeat message succeeded.");
     }
+
+    return false;
+}
+
+bool sendReedSwitchMessage(int switchState){
+    // create readings
+    Reading batteryReading;
+    batteryReading.type = BATTERY_SENSOR;
+    float voltage = getBatteryVoltage();
+    batteryReading.payload.asFloat = voltage;
+    
+    Reading doorReading;
+    doorReading.type = DOOR_SENSOR;
+    doorReading.payload.asBool = switchState;
+
+    // create packet
+    MeshPacket doorPacket;
+    doorPacket.messageId = messagesSent++;
+    doorPacket.readingCount = 1;
+    doorPacket.readings[0] = batteryReading;
+    doorPacket.readings[0] = doorReading;
+
+    // serialize
+    uint8_t rawMessage[RH_MESH_MAX_MESSAGE_LEN];
+    uint8_t numBytesInSerializedPacket = serializePacket(doorPacket, rawMessage, RH_MESH_MAX_MESSAGE_LEN);
+
+    // send
+    uint8_t error = manager->sendtoWait(rawMessage, numBytesInSerializedPacket, VIEWER_ID);
+
+    // Check for error
+    if (error != RH_ROUTER_ERROR_NONE) {
+        Serial.println("Door message failed. Sending again");
+        return true;
+    }else{
+        Serial.println("Door message succeeded.");
+    }
+
+    return false;
 }
 
 // --- BATTERY ---
@@ -349,17 +415,21 @@ int getBatteryPercentageFromV(float voltage){
 }
 
 void reedSwitchLogic(){
-    int currentRSState = digitalRead(RS_PIN);
+    // grab door state
+    currentRSState = digitalRead(RS_PIN);
 
     // Only do something if the state changed
     if (currentRSState != prevRSState) {
-        if (currentRSState != LOW) {
+        if(currentRSState != LOW){
             // Magnet is NEAR (Completes the circuit to GND)
             Serial.println("Status: DOOR CLOSED");
-        } else{
+        }else{
             // Magnet is GONE (Internal pull-up makes it HIGH)
             Serial.println("Status: DOOR OPEN!");
         }
+
+        // send message until it works
+        while(sendReedSwitchMessage(currentRSState));
 
         // Update the memory
         prevRSState = currentRSState;
