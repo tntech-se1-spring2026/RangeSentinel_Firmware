@@ -24,7 +24,7 @@ typedef enum {
     // --- COMM ---
     ASSIGNMENT_ID       = 0x04, // sends nodeID as byte
     ASSIGNMENT_MAC      = 0x05, // sends MAC as byte  
-    REQUEST_TO_ASSIGN   = 0x06 // sends MAC as byte
+    REQUEST_TO_ASSIGN   = 0x06  // sends MAC as byte
 } DataType;
 
 // payload holder
@@ -40,7 +40,8 @@ struct Reading {
     //uint8_t sensorIndex;      // currently unused; will be used if we have multiple of the same sensors (if used uncomment usage in serialization functions)
     DataType type;              // format identifier
     Data payload;               // actual data
-    bool isAlert;
+
+    bool isAlert;               // not actually sent; rather evaluated when received.
 };
 
 // what is sent over LoRa

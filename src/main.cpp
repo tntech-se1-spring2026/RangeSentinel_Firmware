@@ -1,25 +1,26 @@
 #include "hardware_manager.h"
 #include "database_manager.h"
 
-uint8_t nodeID                         = UNASSIGNED_ID; // 254 is the nodeID that all sensor nodes get set to while waiting to be assigned as a node in the mesh from the viewer node
+uint8_t nodeID                          = UNASSIGNED_ID; // 254 is the nodeID that all sensor nodes get set to while waiting to be assigned as a node in the mesh from the viewer node
 unsigned long currentMS                 = 0;
+const unsigned long oneMinInterval      = 60000;
+unsigned long lastHeartBeat             = 0;
 
 // sensor node
 #ifdef NODE_TYPE_SENSOR
 unsigned long lastRSMS                  = 0; // last reed switch reading
 const unsigned long fiftyMSInterval     = 50; 
-const unsigned long oneMinInterval      = 60000;
 const unsigned long tenSecInterval      = 10000;
 unsigned long lastReq                   = 0; // last requestAssignment function call
-unsigned long lastHeartBeat             = 0;
 SensorType sensor; // holds the type of sensor
 void setup() {
     Serial.begin(115200);
+
     setupRadio(nodeID);
 
     // TODO: Add logic to decide what kind of sensor node
 
-    // TODO: door logic
+    // Door logic
     pinMode(RS_PIN, INPUT_PULLUP); // set the reed switch's pin's mode
 
     // TODO: Cam logic
@@ -38,19 +39,25 @@ void loop() {
     // requests assignment every 10 seconds while we aren't connected to the network.
     if(nodeID == UNASSIGNED_ID && (currentMS - lastReq > tenSecInterval)){
         lastReq = millis();
-        requestAssignment();
+        Serial.println("Requesting Assignment");
+        sendRequestAssignment();
     }
 
     // send heartbeat every min
-    if(currentMS - lastHeartBeat > oneMinInterval){
+    if((currentMS - lastHeartBeat > oneMinInterval || currentMS < oneMinInterval && lastHeartBeat == 0) && nodeID != UNASSIGNED_ID){
         lastHeartBeat = millis();
-        sendHeartBeat();
+        
+        while(sendHeartBeat()); // continuously send until it succeeds. 
     }
     
-    // delay prevents bouncing
-    // if(currentMS - lastRSMS > fiftyMSInterval){
-    //     reedSwitchLogic();
-    // }
+    // reed switch logic
+    if(nodeID != UNASSIGNED_ID){
+        // delay prevents bouncing
+        if(currentMS - lastRSMS > fiftyMSInterval){
+            reedSwitchLogic();
+        }
+    }
+    
 }
 #endif
 
@@ -79,20 +86,18 @@ void setup(){
         setupScreen();
     #endif
 
+    // initialize the mutex to protect db shared btwn cores
+    meshMutex = xSemaphoreCreateMutex();
+
     // start LittleFS. Halt if failed
     if (!LittleFS.begin(true)){
         Serial.println("An error occurred while mounting LittleFS");
         while(true);
     }
 
-    // initialize the mutex to protect db shared btwn cores
-    meshMutex = xSemaphoreCreateMutex();
-    getDatabaseFromFS();
     nodeID = VIEWER_ID; // hard set the nodeID of the viewing node to one
-    
-    #ifndef WEB_TEST_MODE
+    //#ifndef WEB_TEST_MODE
         setupRadio(nodeID);
-
         // run the listen function exclusively on core 0
         xTaskCreatePinnedToCore(
             receiverListen,
@@ -103,7 +108,7 @@ void setup(){
             NULL,
             0
         );
-    #endif
+    //#endif
 
     // start access point
     WiFi.softAP("Range-Sentinel-Gateway", WiFiPassword); // (SSID, Password)
@@ -112,6 +117,33 @@ void setup(){
 
     dnsServer.start(DNS_PORT, "*", WiFi.softAPIP());
     startWebServer(&server);
+
+
+    // create NodeStatus for viewer node
+    NodeRecord viewerNode;
+    uint8_t sensorMAC[6];
+    esp_read_mac(sensorMAC, ESP_MAC_WIFI_STA);
+    memcpy(viewerNode.MACAddress, sensorMAC, 6);
+    viewerNode.lastSeen = millis();
+    viewerNode.nodeID = VIEWER_ID;
+    memcpy(viewerNode.nodeName, "Viewing Node", 20);
+
+    // create voltage reading
+    Reading r;
+    r.type = BATTERY_SENSOR;
+    r.payload.asFloat = getBatteryVoltage();
+    
+    // create meshpacket
+    MeshPacket fakePacket;
+    fakePacket.readingCount = 1;
+    fakePacket.messageId = 1;
+    fakePacket.readings[0] = r;
+
+    viewerNode.lastPacket = fakePacket;
+    
+    appendToNetwork(viewerNode);
+    numNodesInNetwork++;
+    //Serial.println("Viewer node just added to db. numNodes in Network: " + String(numNodesInNetwork));
 }
 
 void loop() {
@@ -134,6 +166,14 @@ void loop() {
             saveDatabaseToFS();
             lastDBMS = currentMS;
         }
+    }
+
+    // send heartbeat every min
+    if(currentMS - lastHeartBeat > oneMinInterval){
+        lastHeartBeat = millis();
+        Serial.println("Heartbeat Viewer update");
+        viewerHeartBeatUpdate();
+        //Serial.println("heartbeat numNodesInNetwork: " + String(numNodesInNetwork));
     }
 
     ws.cleanupClients();
