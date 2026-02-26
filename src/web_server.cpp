@@ -2,7 +2,19 @@
 
 #include "web_server.h"
 
+#define HTTP_URL "http://range-sentinel.com"
+#define URL "range-sentinel.com"
+
 AsyncWebSocket ws("/ws");
+
+AsyncMiddlewareFunction ensureURL([](AsyncWebServerRequest* request, ArMiddlewareNext next) {
+    Serial.println(request->host());
+    if (request->host() == URL) {
+        next();
+    } else {
+        return request->redirect(HTTP_URL);
+    }
+});
 
 void startWebServer(AsyncWebServer *server) {
     // register WebSocket handler
@@ -15,6 +27,7 @@ void startWebServer(AsyncWebServer *server) {
         }
     });
 
+    server->addMiddleware(&ensureURL);
 
     startBackend(server);
     startFileServer(server);
@@ -97,7 +110,7 @@ void startBackend(AsyncWebServer *server) {
             }
 
             // convert to long first to prevent overflow
-            long parsedId = idStr.toInt(); 
+            long parsedId = idStr.toInt();
             if (parsedId > 255) {
                 request->send(400, "text/plain", "Error: ID out of range (must be 0-255).");
                 return;
