@@ -71,7 +71,7 @@ void sendRequestAssignment();
 
 /// @brief This function sends a very basic message just saying "I'm alive!"
 /// @returns returns true if message failed
-bool sendHeartBeat();
+bool sendHeartBeat(bool switchState);
 
 /// @brief This functions ends a message containing the door switch status
 /// @param switchState the current state of the switch

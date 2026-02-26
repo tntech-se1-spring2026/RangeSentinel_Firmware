@@ -246,6 +246,8 @@ void sensorListen(){
                         manager->setThisAddress(nodeID);
                         
                         Serial.println("Set my ID to: " + String(nodeID));
+
+                        delay(50); // add delay to prevent possibly sending two messages too close together and getting db appending logic to overlap and duplicate node
                     }
                 }
             }
@@ -278,13 +280,8 @@ void sendAssignNodeID(uint8_t desiredID, uint8_t* nodeMAC){
 
     Serial.printf("Broadcasting assignment: ID %d to MAC\n", desiredID);
 
-    // Sends the assignment 3 times as a broadcast. The sensor will know to assign itself based on the MAC.
-    for(int i = 0; i < 3; i++){
-        bool error = manager->sendtoWait(rawMessage, numBytes, RH_BROADCAST_ADDRESS);
-        delay(200);
-        if(error){
-            Serial.println("assign send failed!");
-        }
+    while(manager->sendtoWait(rawMessage, numBytes, RH_BROADCAST_ADDRESS)){
+        Serial.println("assign send failed!");
     }
 }
 
@@ -319,20 +316,25 @@ void sendRequestAssignment(){
     }
 }
 
-bool sendHeartBeat(){
+bool sendHeartBeat(bool switchState){
     Serial.println("Sending heartbeat");
 
-    // create reading
+    // create readings
     Reading batteryReading;
     batteryReading.type = BATTERY_SENSOR;
     float voltage = getBatteryVoltage();
     batteryReading.payload.asFloat = voltage;
+    
+    Reading doorReading;
+    doorReading.type = DOOR_SENSOR;
+    doorReading.payload.asBool = switchState;
 
     // create packet
     MeshPacket heartBeatPacket;
     heartBeatPacket.messageId = messagesSent++;
-    heartBeatPacket.readingCount = 1;
+    heartBeatPacket.readingCount = 2;
     heartBeatPacket.readings[0] = batteryReading;
+    heartBeatPacket.readings[1] = doorReading;
 
     // serialize
     uint8_t rawMessage[RH_MESH_MAX_MESSAGE_LEN];
@@ -366,9 +368,9 @@ bool sendReedSwitchMessage(int switchState){
     // create packet
     MeshPacket doorPacket;
     doorPacket.messageId = messagesSent++;
-    doorPacket.readingCount = 1;
+    doorPacket.readingCount = 2;
     doorPacket.readings[0] = batteryReading;
-    doorPacket.readings[0] = doorReading;
+    doorPacket.readings[1] = doorReading;
 
     // serialize
     uint8_t rawMessage[RH_MESH_MAX_MESSAGE_LEN];
