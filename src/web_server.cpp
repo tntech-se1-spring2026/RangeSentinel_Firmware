@@ -31,7 +31,6 @@ void startWebServer(AsyncWebServer *server) {
 
     startBackend(server);
     startFileServer(server);
-    startAPI(server);
 
     server->begin();
 }
