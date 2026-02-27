@@ -99,6 +99,22 @@ bool deserializePacket(const uint8_t* buffer, size_t len, MeshPacket& packet) {
     return true;  // packet successfully parsed
 }
 
+void nodeRecordToAlertJson(const NodeRecord& record, JsonObject& obj) {
+    obj["id"] = record.nodeID;
+    obj["name"] = record.nodeName;
+    obj["time"] = record.lastSeen;
+
+    JsonArray reasons = obj.createNestedArray("reasons");
+    for (int i = 0; i < record.lastPacket.readingCount; i++) {
+        const Reading& r = record.lastPacket.readings[i];
+        if (r.isAlert) {
+            reasons.add(r.type == DOOR_SENSOR ? "Door Opened" :
+                        r.type == MOTION_SENSOR ? "Motion Detected" :
+                        "Low Battery");
+        }
+    }
+}
+
 void nodeRecordToWebJson(const NodeRecord& record, JsonObject& obj) {
     obj["id"] = record.nodeID;
     obj["name"] = record.nodeName;

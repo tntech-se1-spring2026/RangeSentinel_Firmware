@@ -76,6 +76,11 @@ size_t serializePacket(const MeshPacket& packet, uint8_t* buffer, size_t maxLen)
 /// @return True if the data was successfully parsed; False otherwise
 bool deserializePacket(const uint8_t* buffer, size_t len, MeshPacket& packet);
 
+/// @brief Converts a NodeRecord into a simple JSON for active alerts
+/// @param record The read only source NodeRecord
+/// @param obj The JsonObject to be populated with alert details
+void nodeRecordToAlertJson(const NodeRecord& record, JsonObject& obj);
+
 /// @brief  @brief Converts a NodeRecord into a simplified JSON object for web UI
 /// @param record The read only source NodeRecord
 /// @param obj The JsonObject to be populated with the web-friendly keys
