@@ -56,6 +56,11 @@ void startBackend(AsyncWebServer *server) {
         request->send(200, "application/json", getDatabaseForWeb());
     });
 
+    // export alerts
+    server->on("/web/alerts", HTTP_GET, [](AsyncWebServerRequest *request) {
+        request->send(200, "applications/json", getActiveAlertsAsJson());
+    });
+
     // acknowledge alerts
     server->on("/web/ack", HTTP_POST, [](AsyncWebServerRequest *request) {
         if (request->hasParam("id")) {
