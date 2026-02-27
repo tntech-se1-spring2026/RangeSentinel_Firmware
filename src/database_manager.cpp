@@ -80,6 +80,23 @@ void updateDatabase(MeshPacket incoming, uint8_t nodeID){
     }
 }
 
+String getDatabaseForWeb() {
+    JsonDocument doc;
+    JsonArray root = doc.to<JsonArray>();
+    if (xSemaphoreTake(meshMutex, portMAX_DELAY)) {
+        for (const auto& record : networkDatabase) {
+            if (record.lastPacket.messageId > 0) {
+                JsonObject obj = root.add<JsonObject>();
+                nodeRecordToWebJson(record, obj);
+            }
+        }
+        xSemaphoreGive(meshMutex);
+    }
+    String output;
+    serializeJson(doc, output);
+    return output;
+}
+
 String getDatabaseAsJson() {
     JsonDocument doc;
     JsonArray root = doc.to<JsonArray>();
