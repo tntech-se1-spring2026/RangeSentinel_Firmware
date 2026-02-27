@@ -38,6 +38,10 @@ bool appendToNetwork(NodeRecord newStatus);
 /// @param nodeID the nodeID of the node that sent the incoming packet
 void updateDatabase(MeshPacket incoming, uint8_t nodeID);
 
+/// @brief  Converts active database into a simplified JSON for alerts for web UI
+/// @return JSON string formatted for front end dashboard alerts
+String getActiveAlertsAsJson();
+
 /// @brief Converts active database into a simplified JSON string for web UI
 /// @return JSON string formatted for the frontend dashboard
 String getDatabaseForWeb();

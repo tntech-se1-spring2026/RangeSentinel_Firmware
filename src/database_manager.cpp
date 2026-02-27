@@ -80,6 +80,24 @@ void updateDatabase(MeshPacket incoming, uint8_t nodeID){
     }
 }
 
+String getActiveAlertsAsJson() {
+    JsonDocument doc;
+    JsonArray root = doc.to<JsonArray>();
+
+    if (xSemaphoreTake(meshMutex, portMAX_DELAY)) {
+        for (const auto& record : networkDatabase) {
+            if (record.alertLatched) {
+                JsonObject obj = root.add<JsonObject>();
+                nodeRecordToAlertJson(record, obj);
+            }
+        }
+        xSemaphoreGive(meshMutex);
+    }
+    String output;
+    serializeJson(doc, output);
+    return output;
+}
+
 String getDatabaseForWeb() {
     JsonDocument doc;
     JsonArray root = doc.to<JsonArray>();
