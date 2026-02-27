@@ -99,6 +99,11 @@ void startBackend(AsyncWebServer *server) {
             request->send(400, "text/plain", "Error: Missing id parameter");
         }
     });
+
+    // event history
+    server->on("/web/history", HTTP_GET, [](AsyncWebServerRequest *request) {
+        request->send(200, "applications/json", getEventLogAsJson());
+    });
 }
 
 void startAPI(AsyncWebServer *server) {
