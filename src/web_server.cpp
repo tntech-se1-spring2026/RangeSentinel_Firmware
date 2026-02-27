@@ -108,18 +108,34 @@ void startBackend(AsyncWebServer *server) {
     server->on("/web/rename", HTTP_POST, [](AsyncWebServerRequest *request) {
         // make sure target nodeID and new name string are present in request
         if (request->hasParam("id") && request->hasParam("name")) {
-            // get values needed for updateNodeName
-            uint8_t id = request->getParam("id")->value().toInt();
+            String idStr = request->getParam("id")->value();
             String newName = request->getParam("name")->value();
+            
+            // validate id is an integer
+            for (int i = 0; i < idStr.length(); i++) {
+                if (!isDigit(idStr.charAt(i))) {
+                    request->send(400, "text/plain", "Error: ID must be a number");
+                    return;
+                }
+            }
+            uint8_t id = idStr.toInt();
+
+            // ensure name is not empty
+            newName.trim();
+            if (newName.length() == 0) {
+                request->send(400, "text/plain", "Error: Name cannot be empty");
+                return;
+            }
+
             if (updateNodeName(id, newName.c_str())) {
                 request->send(200, "text/plain", "Name updated");
             } 
             else {
-                request->send(400, "text/plain", "Invalid ID");
+                request->send(400, "text/plain", "Error: Invalid ID");
             }
         }
         else {
-            request->send(400, "text/plain", "Missing parameters");
+            request->send(400, "text/plain", "Error: Missing parameters");
         }
     });
 }
