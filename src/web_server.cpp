@@ -104,6 +104,25 @@ void startBackend(AsyncWebServer *server) {
     server->on("/web/history", HTTP_GET, [](AsyncWebServerRequest *request) {
         request->send(200, "applications/json", getEventLogAsJson());
     });
+
+    // renaming
+    server->on("/web/rename", HTTP_POST, [](AsyncWebServerRequest *request) {
+        // make sure target nodeID and new name string are present in request
+        if (request->hasParam("id") && request->hasParam("name")) {
+            // get values needed for updateNodeName
+            uint8_t id = request->getParam("id")->value().toInt();
+            String newName = request->getParam("name")->value();
+            if (updateNodeName(id, newName.c_str())) {
+                request->send(200, "text/plain", "Name updated");
+            } 
+            else {
+                request->send(400, "text/plain", "Invalid ID");
+            }
+        }
+        else {
+            request->send(400, "text/plain", "Missing parameters");
+        }
+    });
 }
 
 void startAPI(AsyncWebServer *server) {
