@@ -125,11 +125,4 @@ void startBackend(AsyncWebServer *server) {
     });
 }
 
-void startAPI(AsyncWebServer *server) {
-    // API for inter-node comms here?
-    //
-    // Not sure if HTTP over LoRa is
-    // what you're going for though...
-}
-
 #endif
