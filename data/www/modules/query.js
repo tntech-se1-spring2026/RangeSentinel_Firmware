@@ -4,7 +4,7 @@
 // This file contains logic that handles
 // HTTP queries.
 
-const HOST_ADDRESS = "live.range-sentinel.com";
+const HOST_ADDRESS = "range-sentinel.com";
 const HOST_PORT = "80";
 
 // Generic function to query GET
@@ -31,4 +31,8 @@ export function get_nodes() {
 
 export function get_node_by_id(nodeid) {
   return http_get(`http://${HOST_ADDRESS}:${HOST_PORT}/web/node?id=${nodeid}`);
+}
+
+export function get_node_notification(){
+  return http_get(`http://${HOST_ADDRESS}:${HOST_PORT}/web/notification`);
 }
