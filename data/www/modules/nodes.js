@@ -1,25 +1,45 @@
 import * as query from "/modules/query.js";
 import * as utils from "/modules/utils.js";
 
-export async function update(){
+// export async function update(){ //Gets node data from json and calls create_card for each node
+//     const response = await query.get_nodes();
+//     const node_statuses = await response.json();
+
+//     console.log(node_statuses);
+//     node_statuses.forEach(element => {
+//         console.log(element);
+//         document.querySelector('#node-cards').insertAdjacentHTML("beforeend", utils.create_card(element));
+//     });
+// }
+export async function update() { //Gets node data from json and calls create_card for each node
     const response = await query.get_nodes();
     const node_statuses = await response.json();
 
-    console.log(node_statuses);
+    const container = document.querySelector('#node-cards');
+
+    let html = ""; //Initialize an empty string to hold the generated HTML
+
     node_statuses.forEach(element => {
-        console.log(element);
-        document.querySelector('#node-cards').insertAdjacentHTML("beforeend", utils.create_card(element));
+        html += utils.create_card(element);//Append the generated card HTML to the overall HTML string
+    //This way, we only update the DOM once after processing all nodes, which is more efficient than updating it for each node
     });
-    //document.querySelector('#device-total').innerHTML = node_statuses.length;
+    console.log(html);
+    container.innerHTML = html; //Insert the generated HTML into the container, replacing any existing content
 }
 
-export async function test_notification(){
-    const response = await query.get_node_notification(); //Requests notification data from backend, currently a JSON
-    const notification = await response.json(); 
-
-    console.log(notification);
-    notification.forEach(element => { //For each element, create a notification card and add it to the dropdown menu
+export async function addAlert(){
+    const response = await query.get_node_alert();
+    const alert = await response.json();
+    let html = ""; //Initialize an empty string to hold the generated HTML
+    alert.forEach(element => { //For each element, create a notification card and add it to the dropdown menu
         console.log(element);
-        document.querySelector('#notification-dropdown').insertAdjacentHTML("beforeend", utils.createNotification(element));
+        html += utils.createNotification(element); //Append the generated notification HTML to the overall HTML string
+        const card = document.getElementById(element.id);
+
+        if (card) {
+            card.classList.remove("bg-light");
+            card.classList.add("bg-warning");
+        }
     });
-}
+    document.querySelector('#notification-dropdown').innerHTML = html;
+} //This function follows the same process that update() does

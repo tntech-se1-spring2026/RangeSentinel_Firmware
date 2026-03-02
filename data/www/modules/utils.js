@@ -1,4 +1,4 @@
-export function create_card(node_status) {
+export function create_card(nodeInfo) {
     let battValue = "";
     let sensorIcon = "";
     let bat_icon = "/img/battery_frame_full.svg";
@@ -6,34 +6,32 @@ export function create_card(node_status) {
     let openStatus = "";
     let textColour = "";
 
-    node_status.sensors.forEach(sensor => {
-        if (sensor.type == "batt") {
-            if (sensor.val < 20) {
+    nodeInfo.sensors.forEach(sensor => {
+        if (sensor.type == "battery") {
+            if (sensor.value < 20) {
                 bat_icon = "/img/battery_empty.svg";
             }
-            battValue = sensor.val + "%";
+            battValue = sensor.value + "%";
         }
         if (sensor.type == "door") {
-            sensorIcon = sensor.val == false ? "/img/door_open.svg" : "/img/door_front.svg";
-            openStatus = sensor.val == false ? "Open" : "Closed";
-            textColour = sensor.val == false ? "text-danger" : "text-dark";
+            sensorIcon = sensor.value == "Open" ? "/img/door_open.svg" : "/img/door_front.svg";
+            openStatus = sensor.value == "Open" ? "Open" : "Closed";
+            textColour = sensor.value == "Open" ? "text-danger" : "text-dark";
         } 
     });
 
-    if (node_status.alert) {
-        cardColour = "bg-warning";
-    }
-
-    if(node_status.name == "Viewing Node"){
+    if(nodeInfo.name == "Viewing Node"){
         sensorIcon = "/img/viewing_node.svg";
+        openStatus = "Viewing Node";
+        textColour = "text-dark";
     }
 
     return `
     <div class="col-6 col-md-4 justify-content-center d-flex">
         <!-- Implementation of user-context node card (WITH ALERT)-->
-        <div id="${node_status.id}" class="card w-100 text-center ${cardColour}">
+        <div id="${nodeInfo.id}" class="card w-100 text-center ${cardColour} ${nodeInfo.id}">
             <div class="card-header">
-                <h5 class="float-start card-title">${node_status.name}</h5>
+                <h5 class="float-start card-title">${nodeInfo.name}</h5>
                 <button class="btn btn-link edit-name" type="button"><img class="w-50 h-50 img-fluid float-end ms-3" src="/img/edit.svg" alt="Edit Device Name" /></button>
                 <button class="alert-clear btn btn-sm float-end" style="background-color: #4a4a4a; border: none; color: white;">Clear</button>
             </div>
@@ -54,7 +52,8 @@ export function create_card(node_status) {
 }
 
 export function createNotification(notif){
+
     return `
-    <li><a class="dropdown-item chosenFont" data-node-id="${notif.id}" href="#${notif.id}">${notif.alert}</a></li>
+    <li><a class="dropdown-item chosenFont" data-node-id="${notif.id}" href="#${notif.id}">${notif.name}: ${notif.reasons} </a></li>
     `
 }

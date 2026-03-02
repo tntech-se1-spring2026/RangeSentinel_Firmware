@@ -1,7 +1,7 @@
 import * as nodes from "/modules/nodes.js";
 
 document.addEventListener("DOMContentLoaded", updateAll); //Loads all nodes when page is loaded
-document.querySelector("#notif-button").addEventListener("click", testNotification); //Tests notification retrieval when button is clicked
+document.addEventListener("DOMContentLoaded", allAlerts); //Checks for alerts when page is loaded
 document.addEventListener("click", function(event) { //Event delegation for alert clear buttons
     if (event.target.classList.contains("alert-clear")) {
         const card = event.target.closest('.card');
@@ -48,9 +48,13 @@ document.addEventListener("keydown", function (event) { //Event delegation for n
 });
 
 function updateAll() {
+  console.log("Refreshing all nodes...");
   nodes.update();
 }
 
-function testNotification() {
-  nodes.test_notification();
+function allAlerts() {
+  nodes.addAlert();
 }
+
+setInterval(updateAll, 60000); //Updates all nodes every 60 seconds
+setInterval(allAlerts, 60000); //Checks for new alerts every 60 seconds
