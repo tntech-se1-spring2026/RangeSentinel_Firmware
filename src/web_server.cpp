@@ -31,7 +31,6 @@ void startWebServer(AsyncWebServer *server) {
 
     startBackend(server);
     startFileServer(server);
-    startAPI(server);
 
     server->begin();
 }
@@ -52,43 +51,13 @@ void startBackend(AsyncWebServer *server) {
 
     // exports node db
     server->on("/web/nodes", HTTP_GET, [](AsyncWebServerRequest *request) {
-        // 1. Create response. 'true' means the root is an array [].
-        // Increase the buffer size (e.g., 4096) if your database is large!
-        AsyncJsonResponse *response = new AsyncJsonResponse(true);
-        
-        // 2. Get the actual live root of the response
-        JsonVariant root = response->getRoot();
+        // handles battery percentage and simplified node json for website
+        request->send(200, "application/json", getDatabaseForWeb());
+    });
 
-        // 3. Deserialize the string directly into the RESPONSE object
-        DeserializationError error = deserializeJson(root, getDatabaseAsJson());
-
-        Serial.println(getDatabaseAsJson());
-
-        if (error) {
-            Serial.print("JSON Error: ");
-            Serial.println(error.f_str());
-            request->send(500, "text/plain", "JSON Parse Error");
-            return;
-        }
-
-        // 4. Modify the data in place (Battery Logic)
-        // 'root' now contains your array. We just loop through it.
-        JsonArray nodes = root.as<JsonArray>();
-        for (JsonObject node : nodes) {
-            JsonArray sensors = node["sensors"].as<JsonArray>();
-            for (JsonObject sensor : sensors) {
-                if (sensor["type"] == "batt" || sensor["type"] == "battery") {
-                    float voltage = sensor["val"];
-                    sensor["val"] = getBatteryPercentageFromV(voltage);
-                }
-            }
-        }
-
-        // TODO: add last seen logic
-
-        // 5. Finalize and send
-        response->setLength();
-        request->send(response);
+    // export alerts
+    server->on("/web/alerts", HTTP_GET, [](AsyncWebServerRequest *request) {
+        request->send(200, "applications/json", getActiveAlertsAsJson());
     });
 
     // acknowledge alerts
@@ -129,13 +98,46 @@ void startBackend(AsyncWebServer *server) {
             request->send(400, "text/plain", "Error: Missing id parameter");
         }
     });
-}
 
-void startAPI(AsyncWebServer *server) {
-    // API for inter-node comms here?
-    //
-    // Not sure if HTTP over LoRa is
-    // what you're going for though...
+    // event history
+    server->on("/web/history", HTTP_GET, [](AsyncWebServerRequest *request) {
+        request->send(200, "applications/json", getEventLogAsJson());
+    });
+
+    // renaming
+    server->on("/web/rename", HTTP_POST, [](AsyncWebServerRequest *request) {
+        // make sure target nodeID and new name string are present in request
+        if (request->hasParam("id") && request->hasParam("name")) {
+            String idStr = request->getParam("id")->value();
+            String newName = request->getParam("name")->value();
+            
+            // validate id is an integer
+            for (int i = 0; i < idStr.length(); i++) {
+                if (!isDigit(idStr.charAt(i))) {
+                    request->send(400, "text/plain", "Error: ID must be a number");
+                    return;
+                }
+            }
+            uint8_t id = idStr.toInt();
+
+            // ensure name is not empty
+            newName.trim();
+            if (newName.length() == 0) {
+                request->send(400, "text/plain", "Error: Name cannot be empty");
+                return;
+            }
+
+            if (updateNodeName(id, newName.c_str())) {
+                request->send(200, "text/plain", "Name updated");
+            } 
+            else {
+                request->send(400, "text/plain", "Error: Invalid ID");
+            }
+        }
+        else {
+            request->send(400, "text/plain", "Error: Missing parameters");
+        }
+    });
 }
 
 #endif

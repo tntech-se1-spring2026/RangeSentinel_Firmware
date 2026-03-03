@@ -1,14 +1,17 @@
-> ATTENTION: If you make changes to the schema in some way please update this when it gets merged, so we have a consistent reference
+# Range Sentinel Firmware
 
-## Data Schema and Persistence
-Data is stored in JSON format to be human readable, easily accessible via the web, and light weight enough for the ESP32 to handle efficiently, utilizing `LittleFS.`
+> ATTENTION: If you make changes to the schema in some way please update this when it gets merged, so we have a consistent reference.
 
-### 1. Core Data Structure
+Data Schema and Persistence
 
-The system uses a **Tagged Union** pattern to separate what is sent over LoRa and what is on-device storage.
+We have a separation between internal persistent data (how the ESP32 saves its state) and Web API data (what the frontend dashboard sees).
 
-**A. MeshPacket**
-Tailored for LoRa. Contains only the essential sensor data and dynamically packs bytes based on the `DataType`.
+# 1. Core Data Structure
+
+The system uses a Tagged Union pattern to separate what is sent over LoRa and what is stored on-device.
+
+### A. MeshPacket
+Tailored for LoRa. Contains only the essential sensor data and dynamically packs bytes based on the DataType.
 
 ```cpp
 typedef enum {
@@ -32,10 +35,9 @@ typedef union {
 
 // single sensor event
 struct Reading {
-    //uint8_t sensorIndex;      // currently unused; will be used if we have multiple of the same sensors (if used uncomment usage in serialization functions)
     DataType type;              // format identifier
     Data payload;               // actual data
-    bool isAlert;
+    bool isAlert;               // evaluated on receipt
 };
 
 // what is sent over LoRa
@@ -46,28 +48,30 @@ struct MeshPacket {
 };
 ```
 
-**B. NodeRecord** Wraps the packet with metadata that is _not_ sent over radio to save bandwidth. Used for Viewing node and JSON web output.
+### B. NodeRecord Wraps the packet with metadata that is not sent over radio to save bandwidth. Used for the Viewing node's internal database, LittleFS backups, and as the source data for the Web API.
 
 ```cpp
-// metadata not sent over radio (will be stored in viewing node for comparison)
 struct NodeRecord {
     uint8_t nodeID;
     MeshPacket lastPacket;
     char nodeName[20];
     uint8_t MACAddress[6];
     unsigned long lastSeen;  // local timestamp
-    bool hasActiveAlert;  // global alert status for the node (live status)
-    bool alertLatched;  // tracks if an alert hasn't been cleared yet
+    bool hasActiveAlert;     // global alert status for the node (live status)
+    bool alertLatched;       // tracks if an alert hasn't been cleared yet
 };
 ```
 
-### 2. JSON Storage & API Formats
-In addition to the website files, we hold two distinct files in Flash memory:
+# 2. Persistent Storage (LittleFS)
 
-`db_backup.json` (Live Status)
-Stores the most recent state of each active node.
-* Updates every 5 minutes (if a new event occurred)
-* Formatted in JSON array of objects:
+We hold two distinct files in Flash memory to ensure system state survives power cycles.
+
+### db_backup.json (Live Status)
+Stores the complete, raw state of each active node, including sensitive metadata required for network operations.
+
+Updates when a new event occurs or a setting is changed.
+
+Formatted as a JSON array of objects:
 
 ```json
 [
@@ -87,13 +91,12 @@ Stores the most recent state of each active node.
 ]
 ```
 
-`history_backup.json` (Event Log)
-
+### history_backup.json (Event Log)
 Stores the circular buffer history to show an activity feed.
-* Updates every 5 minutes (if a new event occurred)
-* Formatted in JSON with a metadata header containing the current lcoation of the head and a data array:
 
-```json
+Formatted in JSON with a metadata header containing the current location of the head and a data array.
+
+```cpp
 {
     "head": 3,
     "data": [
@@ -108,44 +111,76 @@ Stores the circular buffer history to show an activity feed.
             "sensors": [
                 { "type": "motion", "val": true, "alert": true }
             ]
-        },
-        { 
-            "id": 2, 
-            "name": "Back Porch", 
-            "ls": 152000,
-            "mId": 12, 
-            "alert": false,
-            "latched": false,
-            "mac": "11:22:33:AA:BB:CC",
-            "sensors": [
-                { "type": "door", "val": false, "alert": false },
-                { "type": "batt", "val": 4.10, "alert": false }
-            ]
         }
     ]
 }
 ```
 
-### 3. Table for Translation from C++ variable to JSON key:
+# 3. Web API Endpoints
 
-**Meta-Data Fields**
+These endpoints are specifically tailored for the frontend dashboard. They filter out internal metadata (like MAC addresses) and convert raw values into human-readable formats.
+
+### GET /web/nodes (Live Dashboard Data)
+Provides the live status of all nodes. Automatically calculates connection status and formats sensor outputs.
+
+```json
+[
+  {
+    "id": 1,
+    "name": "Front Gate",
+    "type": "sensor",
+    "status": "Online",
+    "sensors": [
+      { "type": "battery", "value": 97.12 },
+      { "type": "door", "value": "Open" }
+    ]
+  }
+]
+```
+
+### GET /web/alerts (Active Notifications)
+A minimalist endpoint used by the frontend to poll for unacknowledged alerts. Only returns nodes where alertLatched is true.
+
+```json
+[
+  {
+    "id": 1,
+    "name": "Front Gate",
+    "time": 154200,
+    "reasons": ["Door Opened", "Low Battery"]
+  }
+]
+```
+
+### POST /web/rename (Update Node Name)
+Updates a node's custom name and immediately triggers a database backup to persistent storage.
+
+Params: id (integer), name (string limit 20 chars).
+
+### POST /web/ack (Acknowledge Alert)
+Clears the alertLatched flag for a specific node, removing it from the alerts endpoint.
+
+Params: id (integer).
+
+# 4. Schema Translation Tables
+
+### A. Internal Persistence Translation (db_backup.json)
 | C++ Variable | JSON Key | Type | Description |
 | :--- | :--- | :--- | :--- |
-| nodeId | id | int | Unique Node ID | 
-| lastPacket.messageId | mId | int | Message number | 
-| nodeName | name | string | Name (Stored locally) |
+| nodeId | id | int | Unique Node ID |
+| lastPacket.messageId | mId | int | Message number |
+| nodeName | name | string | Custom Name |
 | lastSeen | ls | long | Timestamp since booted in milliseconds |
-| lastPacket.readings[] | sensors | array | List of sensor objects |
 | hasActiveAlert | alert | bool | True if currently in an alert state |
 | alertLatched | latched | bool | True if an alert has been sent but not cleared |
 | MACAddress | mac | string | 6-byte hardware MAC converted to a string |
+| type | type | string | Enum converted to string ("door", "motion", "batt", etc.) |
+| payload | val | mixed | Raw value (bool, float, or int depending on type) |
 
----
-
-**Sensor Fields**
-| C++ Variable | JSON Key | Type | Description | 
-| :--- | :--- | :--- | :--- | 
-| sensorIndex | idx | int | Which sensor on the board | 
-| type | type | string | Enum converted to string ("door", "motion", "batt", "error", "assign_id", "assign_mac", "req_assign", "unknown") | 
-| payload | val | mixed | value (bool, float, or int depending on type) |
-| isAlert | alert | bool | True is this specific reading triggered an alert | 
+### B. Web API Specific Fields (/web/nodes)
+| JSON Key | Source / Logic | Description |
+| :--- | :--- | :--- |
+| type | nodeID == 1 ? "viewing" : "sensor" | Categorizes the node for UI icons |
+| status | millis() - lastSeen < 30000 | "Online" if seen within 30s, else "Offline" |
+| value | getBatteryPercentageFromV() | Battery voltage automatically converted to 0-100% |
+| value | asBool ? "Closed" : "Open" | Door state converted to a readable string |
