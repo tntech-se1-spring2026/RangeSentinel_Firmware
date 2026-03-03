@@ -48,7 +48,7 @@ export function get_node_by_id(nodeid) {
 }
 
 export function get_node_notification(){
-  return http_get(`http://${HOST_ADDRESS}:${HOST_PORT}/web/notification`);
+  return http_post(`http://${HOST_ADDRESS}:${HOST_PORT}/web/notification`);
 }
 
 export function acknowledge_alert(node_id) {
