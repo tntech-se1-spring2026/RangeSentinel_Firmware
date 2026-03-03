@@ -1,4 +1,5 @@
 import * as nodes from "/modules/nodes.js";
+import * as query from "/modules/query.js";
 
 document.addEventListener("DOMContentLoaded", updateAll); //Loads all nodes when page is loaded
 document.querySelector("#notif-button").addEventListener("click", testNotification); //Tests notification retrieval when button is clicked
@@ -15,6 +16,7 @@ document.addEventListener("click", function(event) { //Event delegation for aler
         if (notification) {
             console.log(`Clearing notification for node ${nodeId}`);
             notification.remove();
+            query.acknowledge_alert(nodeId);
         }
     }
 });
