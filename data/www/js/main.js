@@ -46,6 +46,7 @@ document.addEventListener("keydown", function (event) { //Event delegation for n
         const title = card.querySelector(".card-title");
         title.textContent = newName;
         console.log(`Renamed node ${nodeId} to ${newName}`);
+        query.rename_node(nodeId, newName);
     }
 });
 

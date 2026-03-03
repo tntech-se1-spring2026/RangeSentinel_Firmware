@@ -54,3 +54,7 @@ export function get_node_notification(){
 export function acknowledge_alert(node_id) {
   return http_get(`http://${HOST_ADDRESS}:${HOST_PORT}/web/ack?id=${node_id}`);
 }
+
+export function rename_node(node_id, new_name) {
+  return http_post(`http://${HOST_ADDRESS}:${HOST_PORT}/web/rename?id=${node_id}&name=${new_name}`);
+}
