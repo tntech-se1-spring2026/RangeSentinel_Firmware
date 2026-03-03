@@ -56,5 +56,5 @@ function allAlerts() {
   nodes.addAlert();
 }
 
-setInterval(updateAll, 60000); //Updates all nodes every 60 seconds
-setInterval(allAlerts, 60000); //Checks for new alerts every 60 seconds
+setInterval(updateAll, 30000); //Updates all nodes every 30 seconds
+setInterval(allAlerts, 30000); //Checks for new alerts every 30 seconds

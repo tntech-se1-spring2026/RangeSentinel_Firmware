@@ -1,16 +1,6 @@
 import * as query from "/modules/query.js";
 import * as utils from "/modules/utils.js";
 
-// export async function update(){ //Gets node data from json and calls create_card for each node
-//     const response = await query.get_nodes();
-//     const node_statuses = await response.json();
-
-//     console.log(node_statuses);
-//     node_statuses.forEach(element => {
-//         console.log(element);
-//         document.querySelector('#node-cards').insertAdjacentHTML("beforeend", utils.create_card(element));
-//     });
-// }
 export async function update() { //Gets node data from json and calls create_card for each node
     const response = await query.get_nodes();
     const node_statuses = await response.json();
