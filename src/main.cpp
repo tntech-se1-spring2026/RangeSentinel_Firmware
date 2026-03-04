@@ -111,7 +111,7 @@ void setup(){
     #endif
 
     // start access point
-    WiFi.softAP("Range-Sentinel-Gateway", WiFiPassword); // (SSID, Password)
+    WiFi.softAP("Range-Sentinel-Gateway 2", WiFiPassword); // (SSID, Password)
     Serial.print("Access IP Address: ");
     Serial.println(WiFi.softAPIP());  // should default to 192.168.4.1
 
