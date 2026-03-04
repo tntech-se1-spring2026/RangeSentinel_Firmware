@@ -17,22 +17,41 @@ AsyncMiddlewareFunction ensureURL([](AsyncWebServerRequest* request, ArMiddlewar
 });
 
 void startWebServer(AsyncWebServer *server) {
-    // register WebSocket handler
+    // Register WebSocket handler
     server->addHandler(&ws);
 
-    // clean up memory from disconnected clients occasionally
+    // Keep the event listener for debugging and monitoring
     ws.onEvent([](AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len) {
-        if (type == WS_EVT_DISCONNECT) {
+        if (type == WS_EVT_CONNECT) {
+            Serial.printf("WS: Client %u connected\n", client->id());
+        } else if (type == WS_EVT_DISCONNECT) {
             Serial.printf("WS: Client %u disconnected\n", client->id());
         }
     });
 
+    // Stop the Bootstrap .map "Death Spiral"
+    // This prevents the server from hunting through LittleFS for missing files
+    server->on("/css/bootstrap.min.css.map", HTTP_GET, [](AsyncWebServerRequest *request){
+        request->send(404, "text/plain", "Not Found");
+    });
+
+    // Add an interceptor for the JS map file if you use bootstrap.bundle.min.js
+    server->on("/js/bootstrap.bundle.min.js.map", HTTP_GET, [](AsyncWebServerRequest *request){
+        request->send(404, "text/plain", "Not Found");
+    });
+
     server->addMiddleware(&ensureURL);
 
+    // Start Backend API Routes
     startBackend(server);
+
+    // Start File Server
+    // This contains your serveStatic("/", LittleFS, "/www/").setDefaultFile("index.html");
     startFileServer(server);
 
+    // start the server
     server->begin();
+    Serial.println("HTTP Server started");
 }
 
 void startFileServer(AsyncWebServer *server) {

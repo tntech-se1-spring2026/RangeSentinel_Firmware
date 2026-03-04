@@ -17,7 +17,7 @@
 #define SCREEN_HEIGHT   64
 #define UNASSIGNED_ID   254
 #define VIEWER_ID       1  
-#define RADIO_POWER     10 // TX Power: 5 to 23 dBm. 23 is max power. 
+#define RADIO_POWER     23 // TX Power: 5 to 23 dBm. 23 is max power. 
 
 typedef enum{
     CAMERA,
