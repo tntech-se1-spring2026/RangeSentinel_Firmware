@@ -45,8 +45,23 @@ void startWebServer(AsyncWebServer *server) {
     // Start Backend API Routes
     startBackend(server);
 
+    // Intercept Microsoft/Windows connectivity probes
+    server->on("/connecttest.txt", HTTP_GET, [](AsyncWebServerRequest *request){
+        request->send(200, "text/plain", "Microsoft NCSI");
+    });
+
+    // Intercept Android/Chrome connectivity probes
+    server->on("/generate_204", HTTP_GET, [](AsyncWebServerRequest *request){
+        request->send(204);
+    });
+
+    // Intercept Apple/iOS connectivity probes
+    server->on("/hotspot-detect.html", HTTP_GET, [](AsyncWebServerRequest *request){
+        request->send(200, "text/html", "<html><body>Success</body></html>");
+    });
+
     // Start File Server
-    // This contains your serveStatic("/", LittleFS, "/www/").setDefaultFile("index.html");
+    // This contains serveStatic("/", LittleFS, "/www/").setDefaultFile("index.html");
     startFileServer(server);
 
     // start the server

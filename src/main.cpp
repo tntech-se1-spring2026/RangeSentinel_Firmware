@@ -153,6 +153,8 @@ void loop() {
         if(currentMS - lastScreenUpdate > fiveSecInterval){ // if it has been 5 sec since the last screen update
             updateScreen();
             lastScreenUpdate = millis();
+
+            Serial.printf("Free Heap: %d bytes | Max Alloc: %d bytes\n", ESP.getFreeHeap(), ESP.getMaxAllocHeap()); // print mem
         }
     #endif
 
