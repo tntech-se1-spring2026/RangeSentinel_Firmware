@@ -96,7 +96,7 @@ void setup(){
     }
 
     nodeID = VIEWER_ID; // hard set the nodeID of the viewing node to one
-    //#ifndef WEB_TEST_MODE
+    #ifndef WEB_TEST_MODE
         setupRadio(nodeID);
         // run the listen function exclusively on core 0
         xTaskCreatePinnedToCore(
@@ -108,7 +108,7 @@ void setup(){
             NULL,
             0
         );
-    //#endif
+    #endif
 
     // start access point
     WiFi.softAP("Range-Sentinel-Gateway", WiFiPassword); // (SSID, Password)

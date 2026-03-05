@@ -1,4 +1,5 @@
 import * as nodes from "/modules/nodes.js";
+import * as query from "/modules/query.js";
 
 document.addEventListener("DOMContentLoaded", updateAll); //Loads all nodes when page is loaded
 document.querySelector("#notif-button").addEventListener("click", testNotification); //Tests notification retrieval when button is clicked
@@ -44,6 +45,19 @@ document.addEventListener("keydown", function (event) { //Event delegation for n
         const title = card.querySelector(".card-title");
         title.textContent = newName;
         console.log(`Renamed node ${nodeId} to ${newName}`);
+    }
+});
+
+document.querySelector('#wifi-button').addEventListener('click', async () => {
+    let newPassword;
+    newPassword = document.querySelector('#wifi-password').value;
+    newPassword = newPassword.trim();
+    
+    if (newPassword.length < 8) {
+        document.querySelector('#wifi-err').innerHTML = "Password must be at least 8 characters";
+    } else {
+        response = await query.set_wifi_password(newPassword);
+        document.querySelector('#wifi-err').innerHTML = `New password set to: ${response}`;
     }
 });
 
