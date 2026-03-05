@@ -402,18 +402,54 @@ float getBatteryVoltage(){
     return ((raw / 4095.0) * 3.3 * 2.0 * 1.1);
 }
 
-// TODO: Make this account for non linear discharging
-int getBatteryPercentage(){
-    // Li-ion range: 4.2V (100%) down to 3.2V (0%)
-    int percentage = (int)((getBatteryVoltage() - 3.2) / (4.2 - 3.2) * 100);
-    return(constrain(percentage, 0, 100));
+int getBatteryPercentage() {
+    float v = getBatteryVoltage();
+
+    // Voltage points vs corresponding Percentage
+    static const float voltage_table[] = {4.20, 4.10, 4.00, 3.90, 3.80, 3.70, 3.60, 3.50, 3.20};
+    static const int percent_table[]   = {100,    90,   80,   60,   40,   20,   10,    5,    0};
+
+    // If voltage is at or above max
+    if (v >= voltage_table[0]) return 100;
+    // If voltage is at or below min
+    if (v <= voltage_table[8]) return 0;
+
+    // Find where the current voltage sits in the table
+    for (int i = 0; i < 8; i++) {
+        if (v <= voltage_table[i] && v > voltage_table[i+1]) {
+            // Linear interpolation between the two points for smooth granularity
+            float voltage_diff = voltage_table[i] - voltage_table[i+1];
+            float percent_diff = percent_table[i] - percent_table[i+1];
+            float v_relative = v - voltage_table[i+1];
+            
+            return percent_table[i+1] + (int)((v_relative / voltage_diff) * percent_diff);
+        }
+    }
+    return 0; 
 }
 
-// TODO: Make this account for non linear discharging
-int getBatteryPercentageFromV(float voltage){
-    // Li-ion range: 4.2V (100%) down to 3.2V (0%)
-    int percentage = (int)((voltage - 3.2) / (4.2 - 3.2) * 100);
-    return(constrain(percentage, 0, 100));
+int getBatteryPercentageFromV(float v){
+    // Voltage points vs corresponding Percentage
+    static const float voltage_table[] = {4.20, 4.10, 4.00, 3.90, 3.80, 3.70, 3.60, 3.50, 3.20};
+    static const int percent_table[]   = {100,    90,   80,   60,   40,   20,   10,    5,    0};
+
+    // If voltage is at or above max
+    if (v >= voltage_table[0]) return 100;
+    // If voltage is at or below min
+    if (v <= voltage_table[8]) return 0;
+
+    // Find where the current voltage sits in the table
+    for (int i = 0; i < 8; i++) {
+        if (v <= voltage_table[i] && v > voltage_table[i+1]) {
+            // Linear interpolation between the two points for smooth granularity
+            float voltage_diff = voltage_table[i] - voltage_table[i+1];
+            float percent_diff = percent_table[i] - percent_table[i+1];
+            float v_relative = v - voltage_table[i+1];
+            
+            return percent_table[i+1] + (int)((v_relative / voltage_diff) * percent_diff);
+        }
+    }
+    return 0; 
 }
 
 void reedSwitchLogic(){
