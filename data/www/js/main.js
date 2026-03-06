@@ -1,6 +1,8 @@
 import * as nodes from "/modules/nodes.js";
 import * as query from "/modules/query.js";
 
+let blockUpdates = false;
+
 document.addEventListener("DOMContentLoaded", updateAll); //Loads all nodes when page is loaded
 document.addEventListener("DOMContentLoaded", allAlerts); //Checks for alerts when page is loaded
 document.addEventListener("click", function(event) { //Event delegation for alert clear buttons
@@ -29,6 +31,8 @@ document.addEventListener("click", function (event) { //Event delegation for edi
 
     if (!editBtn) return;
 
+    blockUpdates = true;
+
     const card = editBtn.closest(".card");
     const title = card.querySelector(".card-title");
     const currentName = title.textContent;
@@ -37,7 +41,22 @@ document.addEventListener("click", function (event) { //Event delegation for edi
                class="form-control form-control-sm name-input"
                value="${currentName}">`;
     const input = title.querySelector(".name-input");
+
     input.focus();
+
+    // submits name when loses focus... same code as when enter is pressed
+    input.addEventListener('focusout', (event) => {
+        const input = event.target;
+        const newName = input.value.trim();
+        const card = input.closest(".card");
+        const nodeId = card.id;
+        const title = card.querySelector(".card-title");
+        title.textContent = newName;
+        console.log(`Renamed node ${nodeId} to ${newName}`);
+        query.rename_node(nodeId, newName);
+        blockUpdates = false;
+    });
+    
 });
 document.addEventListener("keydown", function (event) { //Event delegation for name input fields
     if (!event.target.classList.contains("name-input")) return;
@@ -51,6 +70,7 @@ document.addEventListener("keydown", function (event) { //Event delegation for n
         title.textContent = newName;
         console.log(`Renamed node ${nodeId} to ${newName}`);
         query.rename_node(nodeId, newName);
+        blockUpdates = false;
     }
 });
 
@@ -71,6 +91,11 @@ document.querySelector('#wifi-button').addEventListener('click', async () => {
 });
 
 function updateAll() {
+
+    if (blockUpdates) {
+        return;
+    }
+
     let devMode = document.querySelector('#dev-switch').checked;
     console.log("Refreshing all nodes...");
     nodes.update(devMode);
