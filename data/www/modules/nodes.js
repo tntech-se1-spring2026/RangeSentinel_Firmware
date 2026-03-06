@@ -13,7 +13,6 @@ export async function update(dev_view) { //Gets node data from json and calls cr
         html += utils.create_card(element, dev_view);//Append the generated card HTML to the overall HTML string
     //This way, we only update the DOM once after processing all nodes, which is more efficient than updating it for each node
     });
-    console.log(html);
     container.innerHTML = html; //Insert the generated HTML into the container, replacing any existing content
 }
 
