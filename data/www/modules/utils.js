@@ -1,13 +1,13 @@
-export function create_card(node_status, view_toggle) {
+export function create_card(nodeInfo, view_toggle) {
     let battValue = "";
     let sensorIcon = "";
     let bat_icon = "/img/battery_frame_full.svg";
 
-    let cardColour = node_status.alert ? "bg-warning" : "bg-light";
+    let cardColour = nodeInfo.alert ? "bg-warning" : "bg-light";
     let openStatus = "";
     let textColour = "";
 
-    node_status.sensors.forEach(sensor => {
+    nodeInfo.sensors.forEach(sensor => {
         if (sensor.type == "batt") {
             if (sensor.val < 20) {
                 bat_icon = "/img/battery_empty.svg";
@@ -21,27 +21,28 @@ export function create_card(node_status, view_toggle) {
         } 
     });
 
-    if (node_status.alert) {
-        cardColour = "bg-warning";
-    }
-
-    if(node_status.name == "Viewing Node"){
+    if(nodeInfo.type == "viewing"){
         sensorIcon = "/img/viewing_node.svg";
+        openStatus = "Viewing Node";
+        textColour = "text-dark";
+    } else {
+        lastSeenText = (nodeInfo.lastSeen / 1000) + " seconds ago";
     }
     if(view_toggle == true){ //Keep == true to keep it from going dev upon loading page
         //Dev card
         return `
         <div class="col-6 col-md-4 justify-content-center d-flex">
             <!-- Implementation of DEV-context node card (WITH ALERT)-->
-            <div id="${node_status.id}" class="card w-100 text-center ${cardColour}">
+            <div id="${nodeInfo.id}" class="card w-100 text-center ${cardColour}${nodeInfo.id}">
                 <div class="card-header">
                     <h1>DEV</h1>
-                    <h5 class="float-start card-title">${node_status.name}</h5>
+                    <h5 class="float-start card-title">${nodeInfo.name}</h5>
                     <button class="btn btn-link edit-name" type="button"><img class="w-50 h-50 img-fluid float-end ms-3" src="/img/edit.svg" alt="Edit Device Name" /></button>
                     <button class="alert-clear btn btn-sm float-end" style="background-color: #4a4a4a; border: none; color: white;">Clear</button>
                 </div>
                 <div class="card-body">
-                    <h5 class="float-start card-title">ID: ${node_status.id}<br>Mac: ${node_status.mac}</h5>
+                //Include more Dev stuff
+                    <h5 class="float-start card-title">ID: ${nodeInfo.id}<br>Mac: ${nodeInfo.mac}</h5>
                 </div>
                 <div class="card-body">
                     <img width="40em" src="${sensorIcon}" alt="Sensor Icon" />
@@ -53,20 +54,18 @@ export function create_card(node_status, view_toggle) {
                         <img style="color: black" src="${bat_icon}" alt="Battery Level:" />
                         <em class="ms-1">${battValue}</em>
                     </span>
-                    <em class="last-seen ms-3" style="display: none;">2 days ago</em>
+                    <em class="last-seen ms-3" style="display: none;">${lastSeenText}</em>
                 </div>
             </div>
         </div>`
     }
     else{
-        //Non Dev card
         return `
         <div class="col-6 col-md-4 justify-content-center d-flex">
             <!-- Implementation of user-context node card (WITH ALERT)-->
-            <div id="${node_status.id}" class="card w-100 text-center ${cardColour}">
+            <div id="${nodeInfo.id}" class="card w-100 text-center ${cardColour} ${nodeInfo.id}">
                 <div class="card-header">
-                    <h1>NOT DEV</h1>
-                    <h5 class="float-start card-title">${node_status.name}</h5>
+                    <h5 class="float-start card-title">${nodeInfo.name}</h5>
                     <button class="btn btn-link edit-name" type="button"><img class="w-50 h-50 img-fluid float-end ms-3" src="/img/edit.svg" alt="Edit Device Name" /></button>
                     <button class="alert-clear btn btn-sm float-end" style="background-color: #4a4a4a; border: none; color: white;">Clear</button>
                 </div>
@@ -80,7 +79,7 @@ export function create_card(node_status, view_toggle) {
                         <img style="color: black" src="${bat_icon}" alt="Battery Level:" />
                         <em class="ms-1">${battValue}</em>
                     </span>
-                    <em class="last-seen ms-3" style="display: none;">2 days ago</em>
+                    <em class="last-seen ms-3">${lastSeenText}</em>
                 </div>
             </div>
         </div>`
@@ -90,6 +89,6 @@ export function create_card(node_status, view_toggle) {
 export function createNotification(notif){
     let full_notif = notif.reasons.join(", ")
     return `
-    <li><a class="dropdown-item chosenFont" data-node-id="${notif.id}" href="#${notif.id}">${notif.name}: ${full_notif}</a></li>
+    <li><a class="dropdown-itemviewing data-node-id="${notif.id}" href="#${notif.id}">${notif.name}: ${notif.reasons} </a></li>
     `
 }

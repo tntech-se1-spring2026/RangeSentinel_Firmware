@@ -74,5 +74,5 @@ document.addEventListener("DOMContentLoaded", function () {
     
 });
 
-setInterval(updateAll, 30000); //Updates all nodes every 30 seconds
-setInterval(allAlerts, 30000); //Checks for new alerts every 30 seconds
+setInterval(updateAll, 5000); //Updates all nodes every 5 seconds
+setInterval(allAlerts, 5000); //Checks for new alerts every 5 seconds
