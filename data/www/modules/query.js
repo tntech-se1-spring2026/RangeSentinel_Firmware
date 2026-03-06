@@ -4,8 +4,8 @@
 // This file contains logic that handles
 // HTTP queries.
 
-const HOST_ADDRESS = "range-sentinel.com";
-const HOST_PORT = "80";
+const HOST_ADDRESS = "localhost";
+const HOST_PORT = "3000";
 
 // Generic function to query GET
 async function http_get(uri) {
@@ -48,12 +48,15 @@ export function get_node_by_id(nodeid) {
   return http_get(`http://${HOST_ADDRESS}:${HOST_PORT}/web/node?id=${nodeid}`);
 }
 
+export function get_node_alert(){
+  return http_get(`http://${HOST_ADDRESS}:${HOST_PORT}/web/alerts`);
+}
 export function get_node_notification(){
   return http_get(`http://${HOST_ADDRESS}:${HOST_PORT}/web/notification`);
 }
 
 export function acknowledge_alert(node_id) {
-  return http_get(`http://${HOST_ADDRESS}:${HOST_PORT}/web/ack?id=${node_id}`);
+  return http_post(`http://${HOST_ADDRESS}:${HOST_PORT}/web/ack?id=${node_id}`);
 }
 
 export function set_wifi_password(newPassword) {

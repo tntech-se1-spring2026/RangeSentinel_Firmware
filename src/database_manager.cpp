@@ -376,10 +376,7 @@ bool updateNodeName(uint8_t nodeId, const char* newName) {
     // flag db tp be saved to LittleFS
     needsPersistence = true;
     saveDatabaseToFS();
-
-    // Serial.println(networkDatabase.at(nodeId).nodeName);
-    Serial.println(getDatabaseForWeb());
-
+    
     Serial.printf("DB Node %d renamed to '%s'\n", nodeId, newName);
     return true;
 }

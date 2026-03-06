@@ -2,7 +2,7 @@ import * as nodes from "/modules/nodes.js";
 import * as query from "/modules/query.js";
 
 document.addEventListener("DOMContentLoaded", updateAll); //Loads all nodes when page is loaded
-document.querySelector("#notif-button").addEventListener("click", testNotification); //Tests notification retrieval when button is clicked
+document.addEventListener("DOMContentLoaded", allAlerts); //Checks for alerts when page is loaded
 document.addEventListener("click", function(event) { //Event delegation for alert clear buttons
     if (event.target.classList.contains("alert-clear")) {
         const card = event.target.closest('.card');
@@ -67,9 +67,13 @@ document.querySelector('#wifi-button').addEventListener('click', async () => {
 });
 
 function updateAll() {
+  console.log("Refreshing all nodes...");
   nodes.update();
 }
 
-function testNotification() {
-  nodes.test_notification();
+function allAlerts() {
+  nodes.addAlert();
 }
+
+setInterval(updateAll, 5000); //Updates all nodes every 5 seconds
+setInterval(allAlerts, 5000); //Checks for new alerts every 5 seconds
