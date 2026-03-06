@@ -16,6 +16,10 @@ document.addEventListener("click", function(event) { //Event delegation for aler
         if (notification) {
             console.log(`Clearing notification for node ${nodeId}`);
             notification.remove();
+            const notifCount = document.querySelectorAll(
+                '#notification-dropdown .dropdown-item'
+            ).length;
+            nodes.updateNotificationCount(notifCount);
             query.acknowledge_alert(nodeId);
         }
     }
@@ -67,13 +71,18 @@ document.querySelector('#wifi-button').addEventListener('click', async () => {
 });
 
 function updateAll() {
-  console.log("Refreshing all nodes...");
-  nodes.update();
+    let devMode = document.querySelector('#dev-switch').checked;
+    console.log("Refreshing all nodes...");
+    nodes.update(devMode);
 }
 
 function allAlerts() {
-  nodes.addAlert();
+    nodes.addAlert();
 }
+
+document.querySelector('#dev-switch').addEventListener("click", function () {
+    updateAll();
+});
 
 setInterval(updateAll, 5000); //Updates all nodes every 5 seconds
 setInterval(allAlerts, 5000); //Checks for new alerts every 5 seconds
