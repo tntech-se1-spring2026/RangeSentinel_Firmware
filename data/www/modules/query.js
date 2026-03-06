@@ -20,6 +20,7 @@ async function http_get(uri) {
   }
 }
 
+// Generic HTTP POST
 async function http_post(uri) {
   try {
     const response = await fetch(uri, {
@@ -48,11 +49,15 @@ export function get_node_by_id(nodeid) {
 }
 
 export function get_node_notification(){
-  return http_post(`http://${HOST_ADDRESS}:${HOST_PORT}/web/notification`);
+  return http_get(`http://${HOST_ADDRESS}:${HOST_PORT}/web/notification`);
 }
 
 export function acknowledge_alert(node_id) {
   return http_get(`http://${HOST_ADDRESS}:${HOST_PORT}/web/ack?id=${node_id}`);
+}
+
+export function set_wifi_password(newPassword) {
+  return http_post(`http://${HOST_ADDRESS}:${HOST_PORT}/web/wifi-password?password=${newPassword}`);
 }
 
 export function rename_node(node_id, new_name) {

@@ -50,6 +50,22 @@ document.addEventListener("keydown", function (event) { //Event delegation for n
     }
 });
 
+document.querySelector('#wifi-button').addEventListener('click', async () => {
+    let newPassword;
+    newPassword = document.querySelector('#wifi-password').value;
+    newPassword = newPassword.trim();
+    
+    if (newPassword.length < 8) {
+        document.querySelector('#wifi-help').innerHTML = "Password must be at least 8 characters";
+    } else {
+        let response = await query.set_wifi_password(newPassword);
+        if (!response.ok) {
+            document.querySelector('#wifi-help').innerHTML = await response.text();
+        }
+        document.querySelector('#wifi-help').innerHTML = "";
+    }
+});
+
 function updateAll() {
   nodes.update();
 }
