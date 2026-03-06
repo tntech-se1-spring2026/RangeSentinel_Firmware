@@ -1,4 +1,5 @@
 import * as nodes from "/modules/nodes.js";
+import * as query from "/modules/query.js";
 
 document.addEventListener("DOMContentLoaded", updateAll); //Loads all nodes when page is loaded
 document.addEventListener("DOMContentLoaded", allAlerts); //Checks for alerts when page is loaded
@@ -19,6 +20,7 @@ document.addEventListener("click", function(event) { //Event delegation for aler
                 '#notification-dropdown .dropdown-item'
             ).length;
             nodes.updateNotificationCount(notifCount);
+            query.acknowledge_alert(nodeId);
         }
     }
 });
@@ -48,6 +50,23 @@ document.addEventListener("keydown", function (event) { //Event delegation for n
         const title = card.querySelector(".card-title");
         title.textContent = newName;
         console.log(`Renamed node ${nodeId} to ${newName}`);
+        query.rename_node(nodeId, newName);
+    }
+});
+
+document.querySelector('#wifi-button').addEventListener('click', async () => {
+    let newPassword;
+    newPassword = document.querySelector('#wifi-password').value;
+    newPassword = newPassword.trim();
+    
+    if (newPassword.length < 8) {
+        document.querySelector('#wifi-help').innerHTML = "Password must be at least 8 characters";
+    } else {
+        let response = await query.set_wifi_password(newPassword);
+        if (!response.ok) {
+            document.querySelector('#wifi-help').innerHTML = await response.text();
+        }
+        document.querySelector('#wifi-help').innerHTML = "";
     }
 });
 
