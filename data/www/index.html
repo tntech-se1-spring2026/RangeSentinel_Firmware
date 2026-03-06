@@ -56,26 +56,27 @@
         <div class="row g-3" id="node-cards"></div> <!-- defines the rows for cards -->
     </div>
 
-    <!-- Wifi Settings -->
+    <!-- Settings -->
     <div class="modal fade" id="wifiSettings" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h3 class="modal-title">Change WiFi Password</h3>
+                    <h3 class="modal-title">Settings</h3>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
+                    <h4>Change WiFi Password</h4>
                     <div class="form-group">
                         <label class="m-2" for="wifi-password">New Password:</label>
                         <input class="form-control" type="password" id="wifi-password">
                         <small class="form-text text-muted" id="wifi-help"></small>
                     </div>
+                    <div class="mt-3">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-primary" id="wifi-button">Save changes</button>
+                    </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-primary" id="wifi-button">Save changes</button>
-                </div>
-                <div class="form-check form-switch">
+                <div class="modal-footer form-check form-switch justify-content-left">
                     <input class="form-check-input" type="checkbox" id="dev-switch">
                     <label class="form-check-label" for="dev-switch">Dev View</label>
                 </div>

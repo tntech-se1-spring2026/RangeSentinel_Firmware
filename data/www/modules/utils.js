@@ -34,7 +34,7 @@ export function create_card(nodeInfo, dev_view) {
         return `
         <div class="col-6 col-md-4 justify-content-center d-flex">
             <!-- Implementation of DEV-context node card (WITH ALERT)-->
-            <div id="${nodeInfo.id}" class="card w-100 text-center ${cardColour}${nodeInfo.id}">
+            <div id="${nodeInfo.id}" class="card w-100 text-center ${cardColour} ${nodeInfo.id}">
                 <div class="card-header">
                     <h5 class="float-start card-title">${nodeInfo.name}</h5>
                     <button class="btn btn-link edit-name" type="button"><img class="w-50 h-50 img-fluid float-end ms-3" src="/img/edit.svg" alt="Edit Device Name" /></button>
