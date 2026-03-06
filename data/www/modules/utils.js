@@ -36,13 +36,9 @@ export function create_card(nodeInfo, dev_view) {
             <!-- Implementation of DEV-context node card (WITH ALERT)-->
             <div id="${nodeInfo.id}" class="card w-100 text-center ${cardColour}${nodeInfo.id}">
                 <div class="card-header">
-                    <h1>DEV</h1>
                     <h5 class="float-start card-title">${nodeInfo.name}</h5>
                     <button class="btn btn-link edit-name" type="button"><img class="w-50 h-50 img-fluid float-end ms-3" src="/img/edit.svg" alt="Edit Device Name" /></button>
                     <button class="alert-clear btn btn-sm float-end" style="background-color: #4a4a4a; border: none; color: white;">Clear</button>
-                </div>
-                <div class="card-body">
-                    <h5 class="float-start card-title">ID: ${nodeInfo.id}<br>Mac: ${nodeInfo.mac}</h5>
                 </div>
                 <div class="card-body">
                     <img width="40em" src="${sensorIcon}" alt="Sensor Icon" />
@@ -55,6 +51,10 @@ export function create_card(nodeInfo, dev_view) {
                         <em class="ms-1">${battValue}</em>
                     </span>
                     <em class="last-seen ms-3" style="display: none;">${lastSeenText}</em>
+                </div>
+                <div class="card-footer">
+                    <h5>Node ID: ${nodeInfo.id}</h5>
+                    <h5>MAC: ${nodeInfo.mac}</h5>
                 </div>
             </div>
         </div>`
