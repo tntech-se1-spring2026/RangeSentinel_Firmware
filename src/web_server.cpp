@@ -148,9 +148,11 @@ void startBackend(AsyncWebServer *server) {
             if (newPassword.length() < 8) {
                 request->send(400, "text/plain", "Error: WiFi password less than 8 characters");
             } else {
-                // Update WiFi Password here
-                WiFi.softAP("Range-Sentinel-Gateway", newPassword);
-                request->send(200, "text/plain", newPassword);
+                if(!WiFi.softAP("Range-Sentinel-Gateway", newPassword)) {
+                    request->send(500, "text/plain", "Could not update WiFi password");
+                } else {
+                    request->send(200, "text/plain", newPassword);
+                }
             }
         } else {
             request->send(400, "text/plain", "Error: Missing parameters");

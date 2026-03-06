@@ -54,10 +54,13 @@ document.querySelector('#wifi-button').addEventListener('click', async () => {
     newPassword = newPassword.trim();
     
     if (newPassword.length < 8) {
-        document.querySelector('#wifi-err').innerHTML = "Password must be at least 8 characters";
+        document.querySelector('#wifi-help').innerHTML = "Password must be at least 8 characters";
     } else {
-        response = await query.set_wifi_password(newPassword);
-        document.querySelector('#wifi-err').innerHTML = `New password set to: ${response}`;
+        let response = await query.set_wifi_password(newPassword);
+        if (!response.ok) {
+            document.querySelector('#wifi-help').innerHTML = await response.text();
+        }
+        document.querySelector('#wifi-help').innerHTML = "";
     }
 });
 
