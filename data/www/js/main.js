@@ -70,7 +70,7 @@ document.querySelector('#wifi-button').addEventListener('click', async () => {
 });
 
 function updateAll() {
-    let devMode = document.querySelector('#dev-switch');
+    let devMode = document.querySelector('#dev-switch').checked;
     console.log("Refreshing all nodes...");
     nodes.update(devMode);
 }
