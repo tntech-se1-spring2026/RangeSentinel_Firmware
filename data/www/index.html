@@ -17,12 +17,13 @@
         }
     </style>
 </head>
-<body style="background-color: #1d5e66;">
-    <nav class="navbar navbar-expand-lg bg-body-tertiary sticky-top">
+<body style="background-color: #f9f7f2;">
+    <nav class="navbar navbar-expand-lg sticky-top" style="background-color: #f9f7f2; border-bottom: 5px solid #c16a5a;">
         <div class="container-fluid">
             <a class="navbar-brand">
-                <div class="banner">
-                    <h1 class="chosenFont" style="color: #2d2d2d;">Range Sentinel</h1>
+                <div class="banner d-flex align-items-center" >
+                    <img class="me-3" height="auto" width="40px" src="favicon.png">
+                    <h1 class="chosenFont" style="color: #2d4739;">Range Sentinel</h1>
                 </div>
             </a>
             <div class="btn-group dropstart" id="action_items"> <!-- button to open notification dropdown -->
@@ -38,7 +39,7 @@
     </nav>
 
     <div class="container g-3 mt-4"> <!-- remember, container -> row -> col -> card -->
-        <h1 class="chosenFont" style="color: #fafafa;">Device Status</h1>
+        <h1 class="chosenFont" style="color: #2d4739;">Device Status</h1>
         <button class="btn btn-primary mb-3" id="notif-button" style="display: none;">Get Notif</button> <!-- button to test notification retrieval -->
         <div class="row g-3" id="node-cards"></div> <!-- defines the rows for cards -->
     </div>
@@ -48,7 +49,7 @@
     <div class="d-flex justify-content-center align-items-center">
         <div class="card text-center col-sm-5 col-md-4 col-lg-3 mt-3">
             <div class="card-header">
-                <h3 class="card-title">Change WiFi Password</h3>
+                <h3 class="card-title" stlye="color: #c16a5a;">Change WiFi Password</h3>
             </div>
             <div class="card-body">
                 <div class="form-group">
@@ -65,7 +66,7 @@
 
     <style>
         .break {
-            background: #fafafa;
+            background: #a0a0a0;
             height: 5px;
             margin: 2em 0 2em 0;
         }
