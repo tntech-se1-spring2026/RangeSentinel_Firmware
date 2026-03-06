@@ -16,6 +16,7 @@ document.addEventListener("click", function(event) { //Event delegation for aler
         if (notification) {
             console.log(`Clearing notification for node ${nodeId}`);
             notification.remove();
+            query.acknowledge_alert(nodeId);
         }
     }
 });
@@ -45,6 +46,7 @@ document.addEventListener("keydown", function (event) { //Event delegation for n
         const title = card.querySelector(".card-title");
         title.textContent = newName;
         console.log(`Renamed node ${nodeId} to ${newName}`);
+        query.rename_node(nodeId, newName);
     }
 });
 

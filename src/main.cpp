@@ -1,7 +1,7 @@
 #include "hardware_manager.h"
 #include "database_manager.h"
 
-uint8_t nodeID                          = UNASSIGNED_ID; // 254 is the nodeID that all sensor nodes get set to while waiting to be assigned as a node in the mesh from the viewer node
+uint8_t nodeID                          = UNASSIGNED_ID;
 unsigned long currentMS                 = 0;
 const unsigned long oneMinInterval      = 60000;
 unsigned long lastHeartBeat             = 0;
@@ -111,7 +111,7 @@ void setup(){
     #endif
 
     // start access point
-    WiFi.softAP("Range-Sentinel-Gateway", WiFiPassword); // (SSID, Password)
+    WiFi.softAP("Range-Sentinel-Gateway 2", WiFiPassword); // (SSID, Password)
     Serial.print("Access IP Address: ");
     Serial.println(WiFi.softAPIP());  // should default to 192.168.4.1
 
