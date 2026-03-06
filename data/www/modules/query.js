@@ -56,7 +56,7 @@ export function get_node_notification(){
 }
 
 export function acknowledge_alert(node_id) {
-  return http_get(`http://${HOST_ADDRESS}:${HOST_PORT}/web/ack?id=${node_id}`);
+  return http_post(`http://${HOST_ADDRESS}:${HOST_PORT}/web/ack?id=${node_id}`);
 }
 
 export function set_wifi_password(newPassword) {
