@@ -172,6 +172,26 @@ void startBackend(AsyncWebServer *server) {
             request->send(400, "text/plain", "Error: Missing parameters");
         }
     });
+
+    server->on("/web/wifi-password", HTTP_POST, [](AsyncWebServerRequest *request) {
+        if (request->hasParam("password")) {
+            String newPassword = request->getParam("password")->value();
+            newPassword.trim();
+
+            // validate password... minimum for many WiFi devices is 8 characters
+            if (newPassword.length() < 8) {
+                request->send(400, "text/plain", "Error: WiFi password less than 8 characters");
+            } else {
+                if(!WiFi.softAP("Range-Sentinel-Gateway", newPassword)) {
+                    request->send(500, "text/plain", "Could not update WiFi password");
+                } else {
+                    request->send(200, "text/plain", newPassword);
+                }
+            }
+        } else {
+            request->send(400, "text/plain", "Error: Missing parameters");
+        }
+    });
 }
 
 #endif
