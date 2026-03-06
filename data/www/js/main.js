@@ -15,6 +15,10 @@ document.addEventListener("click", function(event) { //Event delegation for aler
         if (notification) {
             console.log(`Clearing notification for node ${nodeId}`);
             notification.remove();
+            const notifCount = document.querySelectorAll(
+                '#notification-dropdown .dropdown-item'
+            ).length;
+            nodes.updateNotificationCount(notifCount);
         }
     }
 });
@@ -49,12 +53,26 @@ document.addEventListener("keydown", function (event) { //Event delegation for n
 
 function updateAll() {
   console.log("Refreshing all nodes...");
-  nodes.update();
+  nodes.update(currentViewToggle);
 }
 
 function allAlerts() {
   nodes.addAlert();
 }
+// Dev switch functionality
+let currentViewToggle = false;
+document.addEventListener("DOMContentLoaded", function () {
+    const devSwitch = document.getElementById("flexSwitchCheckDefault");
+    if (devSwitch) {
+        devSwitch.addEventListener("change", function () {
+            currentViewToggle = this.checked;
+            updateAll();
+            allAlerts();
+            
+        });
+    }
+    
+});
 
 setInterval(updateAll, 30000); //Updates all nodes every 30 seconds
 setInterval(allAlerts, 30000); //Checks for new alerts every 30 seconds
