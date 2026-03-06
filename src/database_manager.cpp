@@ -362,7 +362,16 @@ bool updateNodeName(uint8_t nodeId, const char* newName) {
         return false;  // invalid ID
     }
 
-    strlcpy(networkDatabase.at(nodeId).nodeName, newName, sizeof(networkDatabase.at(nodeId).nodeName));
+    NodeRecord *nodeToUpdate;
+
+    for (auto &record : networkDatabase) {
+        if (record.nodeID == nodeId) {
+            nodeToUpdate = &record;
+            break;
+        }
+    }
+
+    strlcpy(nodeToUpdate->nodeName, newName, sizeof(networkDatabase.at(nodeId).nodeName));
 
     // flag db tp be saved to LittleFS
     needsPersistence = true;
