@@ -20,6 +20,20 @@ async function http_get(uri) {
   }
 }
 
+async function http_post(uri) {
+  try {
+    const response = await fetch(uri, {
+      method: "POST"
+    });
+    if (!response.ok) {
+      throw new Error(`Response status: ${response.status}`);
+    }
+    return response;
+  } catch (error) {
+    console.error(error.message);
+  }
+}
+
 export function ping_backend() {
   console.log(`Trying to reach backend at ${HOST_ADDRESS}:${HOST_PORT}`)
   return http_get(`http://${HOST_ADDRESS}:${HOST_PORT}/web/ping`);
@@ -34,5 +48,9 @@ export function get_node_by_id(nodeid) {
 }
 
 export function get_node_notification(){
-  return http_get(`http://${HOST_ADDRESS}:${HOST_PORT}/web/notification`);
+  return http_post(`http://${HOST_ADDRESS}:${HOST_PORT}/web/notification`);
+}
+
+export function acknowledge_alert(node_id) {
+  return http_get(`http://${HOST_ADDRESS}:${HOST_PORT}/web/ack?id=${node_id}`);
 }
