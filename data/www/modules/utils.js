@@ -7,6 +7,8 @@ export function create_card(nodeInfo, dev_view) {
     let openStatus = "";
     let textColour = "";
     let lastSeenText = "";
+    let removeHTML = "";
+    let devHTML = "";
 
     nodeInfo.sensors.forEach(sensor => {
         if (sensor.type == "batt" || sensor.type == "battery") {
@@ -24,66 +26,62 @@ export function create_card(nodeInfo, dev_view) {
 
     if(nodeInfo.type == "viewing"){
         sensorIcon = "/img/viewing_node.svg";
-        openStatus = "Viewing Node";
+        openStatus = "Viewer";
         textColour = "text-dark";
     } else {
-        lastSeenText = (nodeInfo.lastSeen / 1000) + " seconds ago";
     }
-    if(dev_view == true){
-        //Dev card
-        return `
-        <div class="col-6 col-md-4 justify-content-center d-flex">
-            <!-- Implementation of DEV-context node card (WITH ALERT)-->
-            <div id="${nodeInfo.id}" class="card w-100 text-center ${cardColour} ${nodeInfo.id}">
-                <div class="card-header">
-                    <h5 class="float-start card-title">${nodeInfo.name}</h5>
-                    <button class="btn btn-link edit-name" type="button"><img class="w-50 h-50 img-fluid float-end ms-3" src="/img/edit.svg" alt="Edit Device Name" /></button>
-                    <button class="alert-clear btn btn-sm float-end" style="background-color: #4a4a4a; border: none; color: white;">Clear</button>
-                </div>
-                <div class="card-body">
-                    <img width="40em" src="${sensorIcon}" alt="Sensor Icon" />
-                    <hr class="mb-4" />
-                    <h3 class="${textColour}">${openStatus}</h3>
-                </div>
-                <div class="card-footer text-muted d-flex align-items-center">
-                    <span>
-                        <img style="color: black" src="${bat_icon}" alt="Battery Level:" />
-                        <em class="ms-1">${battValue}</em>
-                    </span>
-                    <em class="last-seen ms-3" style="display: none;">${lastSeenText}</em>
-                </div>
+
+        if (dev_view) {
+            devHTML = `
                 <div class="card-footer">
                     <h5>Node ID: ${nodeInfo.id}</h5>
                     <h5>MAC: ${nodeInfo.mac}</h5>
                 </div>
-            </div>
-        </div>`
-    }
-    else{
+                `
+        }
+
+        // Calculate Last Seen Text
+        if (nodeInfo.status = "Online") {
+            lastSeenText = Math.round((nodeInfo.timeAgo / 1000)) + " seconds ago";
+        } else {
+            lastSeenText = nodeInfo.status;
+        }
+
+        // Add remove button
+        removeHTML = `
+            <button class="btn btn-link delete-node" type="button"><img class="" height="auto" src="img/delete.svg" alt="Delete" aria-label="Delete" /></button>
+        `;
+        
+        // return final HTML
         return `
         <div class="col-6 col-md-4 justify-content-center d-flex">
             <!-- Implementation of user-context node card (WITH ALERT)-->
             <div id="${nodeInfo.id}" class="card w-100 text-center ${cardColour} ${nodeInfo.id}">
-                <div class="card-header">
-                    <h5 class="float-start card-title">${nodeInfo.name}</h5>
-                    <button class="btn btn-link edit-name" type="button"><img class="w-50 h-50 img-fluid float-end ms-3" src="/img/edit.svg" alt="Edit Device Name" /></button>
-                    <button class="alert-clear btn btn-sm float-end" style="background-color: #4a4a4a; border: none; color: white;">Clear</button>
+                <div class="card-header d-flex align-items-center justify-content-between flex-column flex-xl-row">
+                    <span class="d-flex align-items-center justify-content-start">
+                        <h5 class="card-title" style="margin-bottom: 0px;">${nodeInfo.name}</h5>
+                        <button class="btn btn-link edit-name" type="button"><img class="" src="/img/edit.svg" alt="Edit Device Name" /></button>
+                    </span>
+                    <span class="d-flex align-items-center justify-content-end">
+                        ${removeHTML}
+                        <button class="alert-clear btn btn-sm" style="background-color: #4a4a4a; border: none; color: white;">Clear</button>
+                    </span>
                 </div>
                 <div class="card-body">
                     <img width="40em" src="${sensorIcon}" alt="Sensor Icon" />
                     <hr class="mb-4" />
                     <h3 class="${textColour}">${openStatus}</h3>
                 </div>
-                <div class="card-footer text-muted d-flex align-items-center">
-                    <span>
+                <div class="card-footer text-muted d-flex align-items-center justify-content-between">
+                    <span class="d-flex align-items-center">
                         <img style="color: black" src="${bat_icon}" alt="Battery Level:" />
                         <em class="ms-1">${battValue}</em>
                     </span>
                     <em class="last-seen ms-3">${lastSeenText}</em>
                 </div>
+                ${devHTML}
             </div>
         </div>`
-    }
 }
 
 export function createNotification(notif){
