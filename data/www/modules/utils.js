@@ -1,4 +1,4 @@
-export function create_card(nodeInfo, view_toggle) {
+export function create_card(nodeInfo, dev_view) {
     let battValue = "";
     let sensorIcon = "";
     let bat_icon = "/img/battery_frame_full.svg";
@@ -6,18 +6,19 @@ export function create_card(nodeInfo, view_toggle) {
     let cardColour = nodeInfo.alert ? "bg-warning" : "bg-light";
     let openStatus = "";
     let textColour = "";
+    let lastSeenText = "";
 
     nodeInfo.sensors.forEach(sensor => {
-        if (sensor.type == "batt") {
+        if (sensor.type == "batt" || sensor.type == "battery") {
             if (sensor.val < 20) {
                 bat_icon = "/img/battery_empty.svg";
             }
             battValue = sensor.value + "%";
         }
         if (sensor.type == "door") {
-            sensorIcon = sensor.val == false ? "/img/door_open.svg" : "/img/door_front.svg";
-            openStatus = sensor.val == false ? "Open" : "Closed";
-            textColour = sensor.val == false ? "text-danger" : "text-dark";
+            sensorIcon = sensor.val == "Open" ? "/img/door_open.svg" : "/img/door_front.svg";
+            openStatus = sensor.val == "Open" ? "Open" : "Closed";
+            textColour = sensor.val == "Open" ? "text-danger" : "text-dark";
         } 
     });
 
@@ -28,7 +29,7 @@ export function create_card(nodeInfo, view_toggle) {
     } else {
         lastSeenText = (nodeInfo.lastSeen / 1000) + " seconds ago";
     }
-    if(view_toggle == true){ //Keep == true to keep it from going dev upon loading page
+    if(dev_view == true){
         //Dev card
         return `
         <div class="col-6 col-md-4 justify-content-center d-flex">
@@ -41,7 +42,6 @@ export function create_card(nodeInfo, view_toggle) {
                     <button class="alert-clear btn btn-sm float-end" style="background-color: #4a4a4a; border: none; color: white;">Clear</button>
                 </div>
                 <div class="card-body">
-                //Include more Dev stuff
                     <h5 class="float-start card-title">ID: ${nodeInfo.id}<br>Mac: ${nodeInfo.mac}</h5>
                 </div>
                 <div class="card-body">
@@ -87,7 +87,6 @@ export function create_card(nodeInfo, view_toggle) {
 }
 
 export function createNotification(notif){
-    let full_notif = notif.reasons.join(", ")
     return `
     <li><a class="dropdown-itemviewing data-node-id="${notif.id}" href="#${notif.id}">${notif.name}: ${notif.reasons} </a></li>
     `

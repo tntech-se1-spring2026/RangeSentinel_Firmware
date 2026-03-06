@@ -1,4 +1,5 @@
 import * as nodes from "/modules/nodes.js";
+import * as query from "/modules/query.js";
 
 document.addEventListener("DOMContentLoaded", updateAll); //Loads all nodes when page is loaded
 document.addEventListener("DOMContentLoaded", allAlerts); //Checks for alerts when page is loaded
@@ -19,6 +20,7 @@ document.addEventListener("click", function(event) { //Event delegation for aler
                 '#notification-dropdown .dropdown-item'
             ).length;
             nodes.updateNotificationCount(notifCount);
+            query.acknowledge_alert(nodeId);
         }
     }
 });
@@ -51,27 +53,34 @@ document.addEventListener("keydown", function (event) { //Event delegation for n
     }
 });
 
+document.querySelector('#wifi-button').addEventListener('click', async () => {
+    let newPassword;
+    newPassword = document.querySelector('#wifi-password').value;
+    newPassword = newPassword.trim();
+    
+    if (newPassword.length < 8) {
+        document.querySelector('#wifi-help').innerHTML = "Password must be at least 8 characters";
+    } else {
+        let response = await query.set_wifi_password(newPassword);
+        if (!response.ok) {
+            document.querySelector('#wifi-help').innerHTML = await response.text();
+        }
+        document.querySelector('#wifi-help').innerHTML = "";
+    }
+});
+
 function updateAll() {
-  console.log("Refreshing all nodes...");
-  nodes.update(currentViewToggle);
+    devMode = document.querySelector('#dev-switch');
+    console.log("Refreshing all nodes...");
+    nodes.update(devMode);
 }
 
 function allAlerts() {
-  nodes.addAlert();
+    nodes.addAlert();
 }
-// Dev switch functionality
-let currentViewToggle = false;
-document.addEventListener("DOMContentLoaded", function () {
-    const devSwitch = document.getElementById("flexSwitchCheckDefault");
-    if (devSwitch) {
-        devSwitch.addEventListener("change", function () {
-            currentViewToggle = this.checked;
-            updateAll();
-            allAlerts();
-            
-        });
-    }
-    
+
+document.querySelector('#dev-switch').addEventListener("click", function () {
+    updateAll();
 });
 
 setInterval(updateAll, 5000); //Updates all nodes every 5 seconds

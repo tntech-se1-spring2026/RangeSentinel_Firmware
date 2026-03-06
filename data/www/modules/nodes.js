@@ -1,7 +1,7 @@
 import * as query from "/modules/query.js";
 import * as utils from "/modules/utils.js";
 
-export async function update(view_toggle) { //Gets node data from json and calls create_card for each node
+export async function update(dev_view) { //Gets node data from json and calls create_card for each node
     const response = await query.get_nodes();
     const node_statuses = await response.json();
 
@@ -10,7 +10,7 @@ export async function update(view_toggle) { //Gets node data from json and calls
     let html = ""; //Initialize an empty string to hold the generated HTML
 
     node_statuses.forEach(element => {
-        html += utils.create_card(element,view_toggle);//Append the generated card HTML to the overall HTML string
+        html += utils.create_card(element, dev_view);//Append the generated card HTML to the overall HTML string
     //This way, we only update the DOM once after processing all nodes, which is more efficient than updating it for each node
     });
     console.log(html);
