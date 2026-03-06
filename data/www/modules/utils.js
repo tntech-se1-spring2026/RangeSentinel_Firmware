@@ -5,6 +5,7 @@ export function create_card(node_status) {
     let cardColour = "bg-light";
     let openStatus = "";
     let textColour = "";
+    let lastSeenText = "";
 
     node_status.sensors.forEach(sensor => {
         if (sensor.type == "batt") {
@@ -26,6 +27,8 @@ export function create_card(node_status) {
 
     if(node_status.name == "Viewing Node"){
         sensorIcon = "/img/viewing_node.svg";
+    } else {
+        lastSeenText = (node_status.lastSeen / 1000) + " seconds ago";
     }
 
     return `
@@ -47,7 +50,7 @@ export function create_card(node_status) {
                     <img style="color: black" src="${bat_icon}" alt="Battery Level:" />
                     <em class="ms-1">${battValue}</em>
                 </span>
-                <em class="last-seen ms-3" style="display: none;">2 days ago</em>
+                <em class="last-seen ms-3">${lastSeenText}</em>
             </div>
         </div>
     </div>`
