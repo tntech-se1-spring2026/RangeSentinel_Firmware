@@ -130,6 +130,8 @@ void nodeRecordToWebJson(const NodeRecord& record, JsonObject& obj) {
         obj["status"] = "Offline";
     }
 
+    obj["timeAgo"] = millis() - record.lastSeen;
+
     JsonArray sensors = obj.createNestedArray("sensors");
     for (int i = 0; i < record.lastPacket.readingCount; i++) {
         const Reading& r = record.lastPacket.readings[i];

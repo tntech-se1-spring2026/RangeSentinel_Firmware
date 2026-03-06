@@ -5,6 +5,7 @@ export function create_card(nodeInfo) {
     let cardColour = "bg-light";
     let openStatus = "";
     let textColour = "";
+    let lastSeenText = "";
 
     nodeInfo.sensors.forEach(sensor => {
         if (sensor.type == "battery") {
@@ -20,10 +21,12 @@ export function create_card(nodeInfo) {
         } 
     });
 
-    if(nodeInfo.name == "Viewing Node"){
+    if(nodeInfo.type == "viewing"){
         sensorIcon = "/img/viewing_node.svg";
         openStatus = "Viewing Node";
         textColour = "text-dark";
+    } else {
+        lastSeenText = (nodeInfo.lastSeen / 1000) + " seconds ago";
     }
 
     return `
@@ -45,7 +48,7 @@ export function create_card(nodeInfo) {
                     <img style="color: black" src="${bat_icon}" alt="Battery Level:" />
                     <em class="ms-1">${battValue}</em>
                 </span>
-                <em class="last-seen ms-3" style="display: none;">2 days ago</em>
+                <em class="last-seen ms-3">${lastSeenText}</em>
             </div>
         </div>
     </div>`
@@ -54,6 +57,6 @@ export function create_card(nodeInfo) {
 export function createNotification(notif){
 
     return `
-    <li><a class="dropdown-item chosenFont" data-node-id="${notif.id}" href="#${notif.id}">${notif.name}: ${notif.reasons} </a></li>
+    <li><a class="dropdown-itemviewing data-node-id="${notif.id}" href="#${notif.id}">${notif.name}: ${notif.reasons} </a></li>
     `
 }
