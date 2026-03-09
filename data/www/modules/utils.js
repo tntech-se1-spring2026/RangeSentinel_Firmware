@@ -24,7 +24,7 @@ export function create_card(nodeInfo, dev_view) {
 
     if(nodeInfo.type == "viewing"){
         sensorIcon = "/img/viewing_node.svg";
-        openStatus = "Viewing Node";
+        openStatus = "Viewer";
         textColour = "text-dark";
     } else {
         lastSeenText = (nodeInfo.lastSeen / 1000) + " seconds ago";
@@ -88,6 +88,6 @@ export function create_card(nodeInfo, dev_view) {
 
 export function createNotification(notif){
     return `
-    <li><a class="dropdown-itemviewing data-node-id="${notif.id}" href="#${notif.id}">${notif.name}: ${notif.reasons} </a></li>
+    <li><a class="dropdown-item viewing data-node-id="${notif.id}" href="#${notif.id}">${notif.name}: ${notif.reasons} </a></li>
     `
 }
