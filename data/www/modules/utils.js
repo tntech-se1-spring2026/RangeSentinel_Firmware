@@ -88,6 +88,6 @@ export function create_card(nodeInfo, dev_view) {
 
 export function createNotification(notif){
     return `
-    <li><a class="dropdown-item viewing data-node-id="${notif.id}" href="#${notif.id}">${notif.name}: ${notif.reasons} </a></li>
+    <li><a class="dropdown-item viewing" data-node-id="${notif.id}" href="#${notif.id}">${notif.name}: ${notif.reasons} </a></li>
     `
 }
