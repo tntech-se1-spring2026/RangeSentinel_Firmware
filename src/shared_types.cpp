@@ -132,6 +132,19 @@ void nodeRecordToWebJson(const NodeRecord& record, JsonObject& obj) {
 
     obj["timeAgo"] = millis() - record.lastSeen;
 
+    // Convert mac address to string
+    char mac[18];
+    sprintf(mac, "%02X:%02X:%02X:%02X:%02X:%02X", 
+        record.MACAddress[0], 
+        record.MACAddress[1], 
+        record.MACAddress[2], 
+        record.MACAddress[3], 
+        record.MACAddress[4], 
+        record.MACAddress[5]
+    );
+    obj["mac"] = mac;
+
+
     JsonArray sensors = obj.createNestedArray("sensors");
     for (int i = 0; i < record.lastPacket.readingCount; i++) {
         const Reading& r = record.lastPacket.readings[i];

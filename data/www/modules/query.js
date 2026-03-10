@@ -20,7 +20,6 @@ async function http_get(uri) {
   }
 }
 
-// Generic HTTP POST
 async function http_post(uri) {
   try {
     const response = await fetch(uri, {
