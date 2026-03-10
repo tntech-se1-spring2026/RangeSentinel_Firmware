@@ -301,22 +301,22 @@ bool evaluateAlert(const Reading& r) {
     }
 }
 
-bool clearAlertLatch(uint8_t nodeId) {
-    if (nodeId >= MAX_NODES) {
-        return false;  
-    }
+// bool clearAlertLatch(uint8_t nodeId) {
+//     if (nodeId >= MAX_NODES) {
+//         return false;  
+//     }
 
-    // reset latch
-    networkDatabase.at(nodeId - 1).alertLatched = false;
+//     // reset latch
+//     networkDatabase.at(nodeId - 1).alertLatched = false;
 
-    // trigger backup to LittleFS
-    needsPersistence = true;
-    saveDatabaseToFS();
+//     // trigger backup to LittleFS
+//     needsPersistence = true;
+//     saveDatabaseToFS();
 
-    Serial.printf("DB: Alert latch cleared for node %d\n", nodeId);
-    return true;  // success
+//     Serial.printf("DB: Alert latch cleared for node %d\n", nodeId);
+//     return true;  // success
 
-}
+// }
 
 bool clearAlertLatch(uint8_t nodeId) {
     if(nodeId == 0 || nodeId > MAX_NODES){

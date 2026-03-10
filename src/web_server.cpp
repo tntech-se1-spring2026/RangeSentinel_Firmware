@@ -81,7 +81,7 @@ void startFileServer(AsyncWebServer *server) {
     // Serve other files normally, but WITHOUT setDefaultFile
     // Now, if a file like "canonical.html" is missing, it just returns 404
     // immediately without searching the disk 4 times.
-    server->serveStatic("/", LittleFS, "/www/");
+    server->serveStatic("/", LittleFS, "/www/").setDefaultFile("index.html");
 }
 
 void startBackend(AsyncWebServer *server) {
