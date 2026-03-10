@@ -124,7 +124,7 @@ void setup(){
     memcpy(viewerNode.MACAddress, sensorMAC, 6);
     viewerNode.lastSeen = millis();
     viewerNode.nodeID = VIEWER_ID;
-    memcpy(viewerNode.nodeName, "Viewing Node", 20);
+    memcpy(viewerNode.nodeName, "Viewing Device", 20);
 
     // create voltage reading
     Reading r;

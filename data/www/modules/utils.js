@@ -24,7 +24,7 @@ export function create_card(nodeInfo, dev_view) {
 
     if(nodeInfo.type == "viewing"){
         sensorIcon = "/img/viewing_node.svg";
-        openStatus = "Viewer";
+        openStatus = "Viewing Device";
         textColour = "text-dark";
     } else {
         lastSeenText = Math.floor((nodeInfo.timeAgo / 1000)) + " seconds ago";
