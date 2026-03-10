@@ -20,7 +20,27 @@ export async function addAlert(){
     const response = await query.get_node_alert();
     const alert = await response.json();
     let html = ""; //Initialize an empty string to hold the generated HTML
-    alert.forEach(element => { //For each element, create a notification card and add it to the dropdown menu
+
+    let alertCount = 0;
+
+    for (const element of alert) {
+        let lowBattery = false;
+
+        console.log(element);
+
+        // See if low battery is a reason
+        element.reasons.forEach(reason => {
+            console.log(reason);
+            if (reason == "Low Battery" && element.reasons.length == 1) {
+                lowBattery = true;
+                console.log("Low battery is detected");
+            }
+        });
+
+        if (element.mac = "F0:24:F9:93:C9:AC" && lowBattery == true) {
+            continue;
+        }
+
         console.log(element);
         html += utils.createNotification(element); //Append the generated notification HTML to the overall HTML string
         const card = document.getElementById(element.id);
@@ -28,9 +48,12 @@ export async function addAlert(){
             card.classList.remove("bg-light");
             card.classList.add("bg-warning");
         }
-    });
+
+        alertCount += 1;
+    }
+
     document.querySelector('#notification-dropdown').innerHTML = html;
-    updateNotificationCount(alert.length);
+    updateNotificationCount(alertCount);
     
 } //This function follows the same process that update() does
 export function updateNotificationCount(count) { // Changes the count of notifications
