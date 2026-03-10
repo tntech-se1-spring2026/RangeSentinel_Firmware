@@ -10,7 +10,7 @@ export function create_card(nodeInfo, dev_view) {
 
     nodeInfo.sensors.forEach(sensor => {
         if (sensor.type == "batt" || sensor.type == "battery") {
-            if (sensor.val < 20) {
+            if (sensor.value < 20) {
                 bat_icon = "/img/battery_empty.svg";
             }
             battValue = sensor.value + "%";
@@ -27,7 +27,7 @@ export function create_card(nodeInfo, dev_view) {
         openStatus = "Viewing Node";
         textColour = "text-dark";
     } else {
-        lastSeenText = (nodeInfo.lastSeen / 1000) + " seconds ago";
+        lastSeenText = Math.floor((nodeInfo.timeAgo / 1000)) + " seconds ago";
     }
     if(dev_view == true){
         //Dev card
@@ -50,7 +50,7 @@ export function create_card(nodeInfo, dev_view) {
                         <img style="color: black" src="${bat_icon}" alt="Battery Level:" />
                         <em class="ms-1">${battValue}</em>
                     </span>
-                    <em class="last-seen ms-3" style="display: none;">${lastSeenText}</em>
+                    <em class="last-seen ms-3">${lastSeenText}</em>
                 </div>
                 <div class="card-footer">
                     <h5>Node ID: ${nodeInfo.id}</h5>
