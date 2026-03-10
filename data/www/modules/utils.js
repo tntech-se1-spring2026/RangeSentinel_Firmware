@@ -16,9 +16,9 @@ export function create_card(nodeInfo, dev_view) {
             battValue = sensor.value + "%";
         }
         if (sensor.type == "door") {
-            sensorIcon = sensor.val == "Open" ? "/img/door_open.svg" : "/img/door_front.svg";
-            openStatus = sensor.val == "Open" ? "Open" : "Closed";
-            textColour = sensor.val == "Open" ? "text-danger" : "text-dark";
+            sensorIcon = sensor.value == "Open" ? "/img/door_open.svg" : "/img/door_front.svg";
+            openStatus = sensor.value == "Open" ? "Open" : "Closed";
+            textColour = sensor.value == "Open" ? "text-danger" : "text-dark";
         } 
     });
 
