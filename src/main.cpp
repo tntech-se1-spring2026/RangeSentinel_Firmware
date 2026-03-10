@@ -98,20 +98,19 @@ void setup(){
     nodeID = VIEWER_ID; // hard set the nodeID of the viewing node to one
     #ifndef WEB_TEST_MODE
         setupRadio(nodeID);
-        // run the listen function exclusively on core 0
         xTaskCreatePinnedToCore(
             receiverListen,
             "ReceiverListenTask",
-            5000,
-            NULL,
-            1,
-            NULL,
-            0
+            5000,   // stack size
+            NULL,   // parameters
+            2,      // priority (higher than loop)
+            NULL,   // task handle
+            1       // core 1
         );
     #endif
 
     // start access point
-    WiFi.softAP("Range-Sentinel-Gateway 2", WiFiPassword); // (SSID, Password)
+    WiFi.softAP("Range-Sentinel-Gateway", WiFiPassword); // (SSID, Password)
     Serial.print("Access IP Address: ");
     Serial.println(WiFi.softAPIP());  // should default to 192.168.4.1
 
@@ -150,12 +149,10 @@ void loop() {
     
     // update OLED screen
     #ifndef WEB_TEST_MODE
-        if(currentMS - lastScreenUpdate > fiveSecInterval){ // if it has been 5 sec since the last screen update
-            updateScreen();
-            lastScreenUpdate = millis();
-
-            Serial.printf("Free Heap: %d bytes | Max Alloc: %d bytes\n", ESP.getFreeHeap(), ESP.getMaxAllocHeap()); // print mem
-        }
+    if(currentMS - lastScreenUpdate > fiveSecInterval){ // if it has been 5 sec since the last screen update
+        updateScreen();
+        lastScreenUpdate = millis();
+    }
     #endif
 
     dnsServer.processNextRequest();

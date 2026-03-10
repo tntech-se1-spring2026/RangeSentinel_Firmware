@@ -8,11 +8,16 @@
 AsyncWebSocket ws("/ws");
 
 AsyncMiddlewareFunction ensureURL([](AsyncWebServerRequest* request, ArMiddlewareNext next) {
-    Serial.println(request->host());
-    if (request->host() == URL) {
+    // Get the host once to save processing
+    String host = request->host();
+
+    // If they are already on the right URL, let them through
+    if (host == URL || host == WiFi.softAPIP().toString()) {
         next();
-    } else {
-        return request->redirect(HTTP_URL);
+    }else if(host.indexOf("firefox") > 0 || host.indexOf("msft") > 0){ // If it's a known "noisy" probe, just give them a 404 instead of redirecting (this stops the "redirect loop" crash)
+        request->send(404);
+    }else{ // Otherwise, redirect to your landing page
+        request->redirect(HTTP_URL);
     }
 });
 
@@ -49,12 +54,10 @@ void startWebServer(AsyncWebServer *server) {
     server->on("/connecttest.txt", HTTP_GET, [](AsyncWebServerRequest *request){
         request->send(200, "text/plain", "Microsoft NCSI");
     });
-
     // Intercept Android/Chrome connectivity probes
     server->on("/generate_204", HTTP_GET, [](AsyncWebServerRequest *request){
         request->send(204);
     });
-
     // Intercept Apple/iOS connectivity probes
     server->on("/hotspot-detect.html", HTTP_GET, [](AsyncWebServerRequest *request){
         request->send(200, "text/html", "<html><body>Success</body></html>");
@@ -70,8 +73,15 @@ void startWebServer(AsyncWebServer *server) {
 }
 
 void startFileServer(AsyncWebServer *server) {
-    // serves up files in www folder as requests come in
-    server->serveStatic("/", LittleFS, "/www/").setDefaultFile("index.html");
+    // Manually handle the root (/) so the user gets the homepage
+    server->on("/", HTTP_GET, [](AsyncWebServerRequest *request){
+        request->send(LittleFS, "/www/index.html", "text/html");
+    });
+
+    // Serve other files normally, but WITHOUT setDefaultFile
+    // Now, if a file like "canonical.html" is missing, it just returns 404
+    // immediately without searching the disk 4 times.
+    server->serveStatic("/", LittleFS, "/www/");
 }
 
 void startBackend(AsyncWebServer *server) {

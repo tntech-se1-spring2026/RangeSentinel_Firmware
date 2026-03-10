@@ -205,7 +205,7 @@ void receiverListen(void* pvParameters){
                 }
             }
         }
-        vTaskDelay(1 / portTICK_PERIOD_MS); // FEED THE WATCHDOG: This 1ms pause is mandatory on Core 0 otherwise we will be at 100% usage and 
+        vTaskDelay(1 / portTICK_PERIOD_MS); // FEED THE WATCHDOG: This 1ms pause is mandatory on Core 1 otherwise it will never run our loop.
     }
 }
  

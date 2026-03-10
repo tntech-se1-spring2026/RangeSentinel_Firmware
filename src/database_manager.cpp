@@ -18,41 +18,43 @@ bool appendToNetwork(NodeRecord newStatus){
         if(xSemaphoreTake(meshMutex, portMAX_DELAY)){ // LOCK 
             networkDatabase[index] = newStatus;
             xSemaphoreGive(meshMutex); // UNLOCK
+            return true;
         }
-        return true;
-    }else{
-        return false;
     }
+    return false;
 }
 
+#ifdef NODE_TYPE_VIEWER
 void updateDatabase(MeshPacket incoming, uint8_t nodeID){
-    if(xSemaphoreTake(meshMutex, portMAX_DELAY)){ // LOCK      
+    String jsonPayload = ""; // Temporary storage for the WebSocket message
+    bool shouldBroadcast = false;
+    bool foundAlert = false;
+
+    // look for alerts in the readings
+    for (int i = 0; i < incoming.readingCount; i++){
+        // save alert status to individual reading
+        incoming.readings[i].isAlert = evaluateAlert(incoming.readings[i]);
+        if(evaluateAlert(incoming.readings[i])) {
+            foundAlert = true;
+        }
+    }
+    
+    if(xSemaphoreTake(meshMutex, pdMS_TO_TICKS(50))){ // LOCK      
         NodeRecord& currentRecord = networkDatabase.at(nodeID - 1);
 
         // only update if incoming is newer than what is already there
         if (incoming.messageId > currentRecord.lastPacket.messageId) {
-            bool foundAlert = false;
-
-            // look for alerts in the readings
-            for (int i = 0; i < incoming.readingCount; i++) {
-                // save alert status to individual reading
-                incoming.readings[i].isAlert = evaluateAlert(incoming.readings[i]);
-                if (evaluateAlert(incoming.readings[i])) {
-                    foundAlert = true;
-                }
-            }
-
             currentRecord.lastPacket = incoming;
             currentRecord.hasActiveAlert = foundAlert;  // store alert status
             currentRecord.lastSeen = millis();
 
             // if there is an alert, lock the latch (user would have to clear / acknowledge alert to reset it)
-            if (foundAlert) {
+            if(foundAlert){
                 currentRecord.alertLatched = true;
             }
 
             // assign default name if it doesn't have one
-            if (strlen(currentRecord.nodeName) == 0) {
+            if(strlen(currentRecord.nodeName) == 0){
                 snprintf(currentRecord.nodeName, sizeof(currentRecord.nodeName), "Node %d", nodeID);
             }
 
@@ -60,25 +62,27 @@ void updateDatabase(MeshPacket incoming, uint8_t nodeID){
             eventLog[logHead] = currentRecord;
             logHead = (logHead + 1) % MAX_LOG_ENTRIES;
 
+            // Trigger the "Save to Flash" flag for the Main Loop
             needsPersistence = true;
 
             #ifdef NODE_TYPE_VIEWER
             JsonDocument updateDoc;
             JsonObject obj = updateDoc.to<JsonObject>();
             nodeRecordToJsonObject(currentRecord, obj);
-            String output;
-            serializeJson(updateDoc, output);
-            //Serial.println("before ws.textALL");
-            ws.textAll(output);
-            //Serial.println("after ws.textAll");
+            serializeJson(updateDoc, jsonPayload);
+            shouldBroadcast = true;
             #endif
-
-            // blankspace to keep logs aligned
-            Serial.printf("%s DB: Node %d updated & logged (Msg %d)\n", foundAlert ? "[ALERT!]" : "        ", nodeID, incoming.messageId); 
         }
         xSemaphoreGive(meshMutex); // UNLOCK
     }
+    
+    // send data
+    if (shouldBroadcast && jsonPayload != "") {
+        ws.textAll(jsonPayload); // Safe to call here on Core 1
+    }
+    Serial.printf("%s DB: Node %d updated & logged (Msg %d)\n", foundAlert ? "[ALERT!]" : "        ", nodeID, incoming.messageId);
 }
+#endif
 
 String getActiveAlertsAsJson() {
     JsonDocument doc;
@@ -101,7 +105,7 @@ String getActiveAlertsAsJson() {
 String getDatabaseForWeb() {
     JsonDocument doc;
     JsonArray root = doc.to<JsonArray>();
-    if (xSemaphoreTake(meshMutex, portMAX_DELAY)) {
+    if (xSemaphoreTake(meshMutex, pdMS_TO_TICKS(100))) {
         for (const auto& record : networkDatabase) {
             if (record.lastPacket.messageId > 0) {
                 JsonObject obj = root.add<JsonObject>();
@@ -109,6 +113,8 @@ String getDatabaseForWeb() {
             }
         }
         xSemaphoreGive(meshMutex);
+    }else{
+        Serial.println("DB Warning: getDatabaseForWeb couldn't get lock");
     }
     String output;
     serializeJson(doc, output);
@@ -138,15 +144,18 @@ String getEventLogAsJson() {
     JsonDocument doc;
     JsonArray root = doc.to<JsonArray>();
 
-    // work backward to get most recent activity first
-    for (int i = 0; i < MAX_LOG_ENTRIES; i++) {
-        // handle wrapping around circular buffer and avoid negative indices
-        int index = (logHead - 1 - i + MAX_LOG_ENTRIES) % MAX_LOG_ENTRIES;
-        const NodeRecord& entry = eventLog[index];
-        if (entry.nodeID > 0) {
-            JsonObject obj = root.add<JsonObject>();
-            nodeRecordToJsonObject(entry, obj);
+    if(xSemaphoreTake(meshMutex, portMAX_DELAY)){
+        // work backward to get most recent activity first
+        for (int i = 0; i < MAX_LOG_ENTRIES; i++) {
+            // handle wrapping around circular buffer and avoid negative indices
+            int index = (logHead - 1 - i + MAX_LOG_ENTRIES) % MAX_LOG_ENTRIES;
+            const NodeRecord& entry = eventLog[index];
+            if (entry.nodeID > 0) {
+                JsonObject obj = root.add<JsonObject>();
+                nodeRecordToJsonObject(entry, obj);
+            }
         }
+        xSemaphoreGive(meshMutex);
     }
 
     String output;
@@ -292,14 +301,13 @@ bool evaluateAlert(const Reading& r) {
     }
 }
 
-// manually clear the latch for a specific node
 bool clearAlertLatch(uint8_t nodeId) {
     if (nodeId >= MAX_NODES) {
-        return false;  // invalid ID
+        return false;  
     }
 
     // reset latch
-    networkDatabase.at(nodeId).alertLatched = false;
+    networkDatabase.at(nodeId - 1).alertLatched = false;
 
     // trigger backup to LittleFS
     needsPersistence = true;
@@ -308,6 +316,26 @@ bool clearAlertLatch(uint8_t nodeId) {
     Serial.printf("DB: Alert latch cleared for node %d\n", nodeId);
     return true;  // success
 
+}
+
+bool clearAlertLatch(uint8_t nodeId) {
+    if(nodeId == 0 || nodeId > MAX_NODES){
+        return false; // invalid ID
+    }  
+
+    bool success = false;
+    if(xSemaphoreTake(meshMutex, portMAX_DELAY)) {
+        networkDatabase.at(nodeId - 1).alertLatched = false; // -1 to match array index
+        needsPersistence = true;
+        success = true;
+        xSemaphoreGive(meshMutex);
+    }
+
+    if (success) {
+        saveDatabaseToFS(); // Call this OUTSIDE the lock to avoid deadlocks
+        Serial.printf("DB: Alert latch cleared for node %d\n", nodeId);
+    }
+    return success;
 }
 
 
@@ -371,7 +399,7 @@ bool updateNodeName(uint8_t nodeId, const char* newName) {
         }
     }
 
-    strlcpy(nodeToUpdate->nodeName, newName, sizeof(networkDatabase.at(nodeId).nodeName));
+    strlcpy(nodeToUpdate->nodeName, newName, sizeof(networkDatabase.at(nodeId - 1).nodeName));
 
     // flag db tp be saved to LittleFS
     needsPersistence = true;
