@@ -22,6 +22,11 @@ export function create_card(nodeInfo, dev_view) {
         } 
     });
 
+    if (nodeInfo.mac == "D4:E9:F4:E9:12:88") {
+        battValue = "";
+        bat_icon = "/img/sunny.svg";
+    }
+
     if(nodeInfo.type == "viewing"){
         sensorIcon = "/img/viewing_node.svg";
         openStatus = "Viewing Device";
