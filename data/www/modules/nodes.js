@@ -37,7 +37,7 @@ export async function addAlert(){
             }
         });
 
-        if (element.mac = "F0:24:F9:93:C9:AC" && lowBattery == true) {
+        if (element.mac = "D4:E9:F4:E9:12:88" && lowBattery == true) {
             continue;
         }
 

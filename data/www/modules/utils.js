@@ -22,7 +22,7 @@ export function create_card(nodeInfo, dev_view) {
         } 
     });
 
-    if (nodeInfo.mac == "F0:24:F9:93:C9:AC") {
+    if (nodeInfo.mac == "D4:E9:F4:E9:12:88") {
         battValue = "";
         bat_icon = "/img/sunny.svg";
     }
