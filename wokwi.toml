@@ -1,4 +1,0 @@
-[wokwi]
-version = 1
-firmware = '.pio/build/viewing_node/firmware.bin'
-elf = '.pio/build/viewing_node/firmware.elf'
