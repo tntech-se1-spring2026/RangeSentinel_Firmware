@@ -80,6 +80,41 @@ void updateDatabase(MeshPacket incoming, uint8_t nodeID){
     }
 }
 
+String getActiveAlertsAsJson() {
+    JsonDocument doc;
+    JsonArray root = doc.to<JsonArray>();
+
+    if (xSemaphoreTake(meshMutex, portMAX_DELAY)) {
+        for (const auto& record : networkDatabase) {
+            if (record.alertLatched) {
+                JsonObject obj = root.add<JsonObject>();
+                nodeRecordToAlertJson(record, obj);
+            }
+        }
+        xSemaphoreGive(meshMutex);
+    }
+    String output;
+    serializeJson(doc, output);
+    return output;
+}
+
+String getDatabaseForWeb() {
+    JsonDocument doc;
+    JsonArray root = doc.to<JsonArray>();
+    if (xSemaphoreTake(meshMutex, portMAX_DELAY)) {
+        for (const auto& record : networkDatabase) {
+            if (record.lastPacket.messageId > 0) {
+                JsonObject obj = root.add<JsonObject>();
+                nodeRecordToWebJson(record, obj);
+            }
+        }
+        xSemaphoreGive(meshMutex);
+    }
+    String output;
+    serializeJson(doc, output);
+    return output;
+}
+
 String getDatabaseAsJson() {
     JsonDocument doc;
     JsonArray root = doc.to<JsonArray>();
@@ -327,12 +362,21 @@ bool updateNodeName(uint8_t nodeId, const char* newName) {
         return false;  // invalid ID
     }
 
-    strlcpy(networkDatabase.at(nodeId).nodeName, newName, sizeof(networkDatabase.at(nodeId).nodeName));
+    NodeRecord *nodeToUpdate;
+
+    for (auto &record : networkDatabase) {
+        if (record.nodeID == nodeId) {
+            nodeToUpdate = &record;
+            break;
+        }
+    }
+
+    strlcpy(nodeToUpdate->nodeName, newName, sizeof(networkDatabase.at(nodeId).nodeName));
 
     // flag db tp be saved to LittleFS
     needsPersistence = true;
     saveDatabaseToFS();
-
+    
     Serial.printf("DB Node %d renamed to '%s'\n", nodeId, newName);
     return true;
 }

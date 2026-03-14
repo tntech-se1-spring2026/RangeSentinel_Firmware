@@ -1,7 +1,7 @@
 #include "hardware_manager.h"
 #include "database_manager.h"
 
-uint8_t nodeID                          = UNASSIGNED_ID; // 254 is the nodeID that all sensor nodes get set to while waiting to be assigned as a node in the mesh from the viewer node
+uint8_t nodeID                          = UNASSIGNED_ID;
 unsigned long currentMS                 = 0;
 const unsigned long oneMinInterval      = 60000;
 unsigned long lastHeartBeat             = 0;
@@ -96,7 +96,7 @@ void setup(){
     }
 
     nodeID = VIEWER_ID; // hard set the nodeID of the viewing node to one
-    //#ifndef WEB_TEST_MODE
+    #ifndef WEB_TEST_MODE
         setupRadio(nodeID);
         // run the listen function exclusively on core 0
         xTaskCreatePinnedToCore(
@@ -108,7 +108,7 @@ void setup(){
             NULL,
             0
         );
-    //#endif
+    #endif
 
     // start access point
     WiFi.softAP("Range-Sentinel-Gateway", WiFiPassword); // (SSID, Password)
