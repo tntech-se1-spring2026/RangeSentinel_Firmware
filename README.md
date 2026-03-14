@@ -1,186 +1,70 @@
-# Range Sentinel Firmware
+# Range Sentinel
+> Security Beyond the Grid
 
-> ATTENTION: If you make changes to the schema in some way please update this when it gets merged, so we have a consistent reference.
+## Overview
 
-Data Schema and Persistence
+Range Sentinel is a solution aimed at those who live in areas that may not have a
+strong connection to the Internet, be it from an ISP or through cellular signals.
 
-We have a separation between internal persistent data (how the ESP32 saves its state) and Web API data (what the frontend dashboard sees).
+It is able to monitor doors, gates, and fences at a long range showing live updates
+to help combat nefarious activity.
 
-# 1. Core Data Structure
+Range Sentinel beleives in packaging every part of itself in an enclosed system.
+Therefore, an Internet connection is _not required_. Instead, a specialized `viewing node`
+is used to monitor the system with both a screen and through a locally hosted web server.
 
-The system uses a Tagged Union pattern to separate what is sent over LoRa and what is stored on-device.
+> Note: The frequencies emmitted from the wireless LoRa tranceivers may not be 
+legal to broadcast in your country! Consult your country's 
+[frequency plan](https://www.thethingsnetwork.org/docs/lorawan/frequencies-by-country/) if you are unsure. 
+Range Sentinel is **NOT LIABLE** for breaking your country's laws.
 
-### A. MeshPacket
-Tailored for LoRa. Contains only the essential sensor data and dynamically packs bytes based on the DataType.
+## Bill of Materials
+- Each viewing node consists of:
+  - 1 [ESP32 Microsontroller](https://en.wikipedia.org/wiki/ESP32)
+  - 1 [XL1276-P01 Wireless LoRa Transceiver Module](https://www.amazon.com/dp/B0BXDNFZ2B)
+  - 1 [3.7V 3000mAh Rechargable Battery](https://www.amazon.com/dp/B08T6GT7DV?th=1)
+  - 1 [TP4057 1A 3.7V Battery Charging Board](https://www.amazon.com/dp/B0CDWZ9MDC)
+  - 1 [6V DC Solar Panel](https://www.amazon.com/dp/B08THXDWS1)
+  - 1 [0.96 inch SSD1306 Driver I2C OLED Screen](https://www.amazon.com/DIYmall-Serial-128x64-Display-Arduino/dp/B00O2KDQBE?th=1)
 
-```cpp
-typedef enum {
-    OTHER               = 0x00, 
-    DOOR_SENSOR         = 0x01, // sends open as bool
-    MOTION_SENSOR       = 0x02, // sends motion as bool
-    BATTERY_SENSOR      = 0x03, // sends voltage as float
-    ASSIGNMENT_ID       = 0x04, // sends nodeID as byte
-    ASSIGNMENT_MAC      = 0x05, // sends MAC as byte  
-    REQUEST_TO_ASSIGN   = 0x06, // sends MAC as byte
-    SENSOR_TYPE_ERROR   = 0xFF
-} DataType;
+- Each sensor node consists of:
+  - 1 [ESP32 Microsontroller](https://en.wikipedia.org/wiki/ESP32)
+  - 1 [XL1276-P01 Wireless LoRa Transceiver Module](https://www.amazon.com/dp/B0BXDNFZ2B)
+  - 1 [3.7V 3000mAh Rechargable Battery](https://www.amazon.com/dp/B08T6GT7DV?th=1)
+  - 1 [TP4057 1A 3.7V Battery Charging Board](https://www.amazon.com/dp/B0CDWZ9MDC)
+  - 1 [6V DC Solar Panel](https://www.amazon.com/dp/B08THXDWS1)
+  - 1 [Magnetic Reed Switch](https://www.amazon.com/dp/B0BX2ZRZ8T?th=1)
+  
+> Special boards such as the [LILYGO LoRa32 915Mhz ESP32 Development Board](https://www.amazon.com/dp/B09SHRWVNB?th=1) package most
+of the parts in a single unit. This is the preferred way of running Range Sentinel.
 
-// payload holder
-typedef union {
-    bool asBool;
-    float asFloat;
-    uint8_t asByte;
-    MacAddress asMAC;
-} Data;
+## Building
 
-// single sensor event
-struct Reading {
-    DataType type;              // format identifier
-    Data payload;               // actual data
-    bool isAlert;               // evaluated on receipt
-};
+Range Sentinel is built with [Platform IO](https://platformio.org/).
+You will need to install at least the core CLI tools to build and flash
+the devices.
 
-// what is sent over LoRa
-struct MeshPacket {
-    uint32_t messageId;
-    uint8_t readingCount;
-    Reading readings[MAX_SENSORS_PER_PACKET];
-};
-```
+### Flashing the Viewing Node
 
-### B. NodeRecord Wraps the packet with metadata that is not sent over radio to save bandwidth. Used for the Viewing node's internal database, LittleFS backups, and as the source data for the Web API.
+Once the viewing node is assembled, it can be flashed using the
+`viewing_node` environment.
 
-```cpp
-struct NodeRecord {
-    uint8_t nodeID;
-    MeshPacket lastPacket;
-    char nodeName[20];
-    uint8_t MACAddress[6];
-    unsigned long lastSeen;  // local timestamp
-    bool hasActiveAlert;     // global alert status for the node (live status)
-    bool alertLatched;       // tracks if an alert hasn't been cleared yet
-};
-```
+`platformio run --target upload --environment viewing_node`
 
-# 2. Persistent Storage (LittleFS)
+Next, the viewing node needs the littlefs file system uploaded to it.
 
-We hold two distinct files in Flash memory to ensure system state survives power cycles.
+`platformio run --target uploadfs --environment viewing_node`
 
-### db_backup.json (Live Status)
-Stores the complete, raw state of each active node, including sensitive metadata required for network operations.
+### Flashing Sensor Nodes
 
-Updates when a new event occurs or a setting is changed.
+Once assembled, sensor nodes can be flashed with the `sensor_node`
+environment.
 
-Formatted as a JSON array of objects:
+`platformio run --target upload --environment sensor_node`
 
-```json
-[
-  {
-    "id": 1,
-    "name": "Front Gate",
-    "ls": 154200,
-    "mId": 42,
-    "alert": false,
-    "latched": false,
-    "mac": "AA:BB:CC:11:22:33",
-    "sensors": [
-      { "type": "door", "val": true, "alert": false },
-      { "type": "batt", "val": 3.95, "alert": false }
-    ]
-  }
-]
-```
+## Documentation
 
-### history_backup.json (Event Log)
-Stores the circular buffer history to show an activity feed.
+Documentation is available in the `docs/` folder. Included is various information about
+the layout of structs and webserver information.
 
-Formatted in JSON with a metadata header containing the current location of the head and a data array.
-
-```cpp
-{
-    "head": 3,
-    "data": [
-        { 
-            "id": 1, 
-            "name": "Front Gate", 
-            "ls": 150000,
-            "mId": 40, 
-            "alert": true,
-            "latched": true,
-            "mac": "AA:BB:CC:11:22:33",
-            "sensors": [
-                { "type": "motion", "val": true, "alert": true }
-            ]
-        }
-    ]
-}
-```
-
-# 3. Web API Endpoints
-
-These endpoints are specifically tailored for the frontend dashboard. They filter out internal metadata (like MAC addresses) and convert raw values into human-readable formats.
-
-### GET /web/nodes (Live Dashboard Data)
-Provides the live status of all nodes. Automatically calculates connection status and formats sensor outputs.
-
-```json
-[
-  {
-    "id": 1,
-    "name": "Front Gate",
-    "type": "sensor",
-    "status": "Online",
-    "sensors": [
-      { "type": "battery", "value": 97.12 },
-      { "type": "door", "value": "Open" }
-    ]
-  }
-]
-```
-
-### GET /web/alerts (Active Notifications)
-A minimalist endpoint used by the frontend to poll for unacknowledged alerts. Only returns nodes where alertLatched is true.
-
-```json
-[
-  {
-    "id": 1,
-    "name": "Front Gate",
-    "time": 154200,
-    "reasons": ["Door Opened", "Low Battery"]
-  }
-]
-```
-
-### POST /web/rename (Update Node Name)
-Updates a node's custom name and immediately triggers a database backup to persistent storage.
-
-Params: id (integer), name (string limit 20 chars).
-
-### POST /web/ack (Acknowledge Alert)
-Clears the alertLatched flag for a specific node, removing it from the alerts endpoint.
-
-Params: id (integer).
-
-# 4. Schema Translation Tables
-
-### A. Internal Persistence Translation (db_backup.json)
-| C++ Variable | JSON Key | Type | Description |
-| :--- | :--- | :--- | :--- |
-| nodeId | id | int | Unique Node ID |
-| lastPacket.messageId | mId | int | Message number |
-| nodeName | name | string | Custom Name |
-| lastSeen | ls | long | Timestamp since booted in milliseconds |
-| hasActiveAlert | alert | bool | True if currently in an alert state |
-| alertLatched | latched | bool | True if an alert has been sent but not cleared |
-| MACAddress | mac | string | 6-byte hardware MAC converted to a string |
-| type | type | string | Enum converted to string ("door", "motion", "batt", etc.) |
-| payload | val | mixed | Raw value (bool, float, or int depending on type) |
-
-### B. Web API Specific Fields (/web/nodes)
-| JSON Key | Source / Logic | Description |
-| :--- | :--- | :--- |
-| type | nodeID == 1 ? "viewing" : "sensor" | Categorizes the node for UI icons |
-| status | millis() - lastSeen < 30000 | "Online" if seen within 30s, else "Offline" |
-| value | getBatteryPercentageFromV() | Battery voltage automatically converted to 0-100% |
-| value | asBool ? "Closed" : "Open" | Door state converted to a readable string |
+Additionally, a `Doxyfile` is included for use with [doxygen](https://www.doxygen.nl/).
