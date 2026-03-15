@@ -1,4 +1,5 @@
 #include "shared_types.h"
+#include "hardware_manager.h"
 
 size_t serializePacket(const MeshPacket& packet, uint8_t* buffer, size_t maxLen) {
     size_t cursor = 0;  // track where we are writing to in byte array
@@ -96,6 +97,74 @@ bool deserializePacket(const uint8_t* buffer, size_t len, MeshPacket& packet) {
         }
     }
     return true;  // packet successfully parsed
+}
+
+void nodeRecordToAlertJson(const NodeRecord& record, JsonObject& obj) {
+    obj["id"] = record.nodeID;
+    obj["name"] = record.nodeName;
+    obj["time"] = record.lastSeen;
+
+    JsonArray reasons = obj.createNestedArray("reasons");
+    for (int i = 0; i < record.lastPacket.readingCount; i++) {
+        const Reading& r = record.lastPacket.readings[i];
+        if (r.isAlert) {
+            reasons.add(r.type == DOOR_SENSOR ? "Door Opened" :
+                        r.type == MOTION_SENSOR ? "Motion Detected" :
+                        "Low Battery");
+        }
+    }
+}
+
+void nodeRecordToWebJson(const NodeRecord& record, JsonObject& obj) {
+    obj["id"] = record.nodeID;
+    obj["name"] = record.nodeName;
+
+    // viewing node should be ID 1
+    obj["type"] = (record.nodeID == 1) ? "viewing" : "sensor";
+
+    // calculate Online/Offline status based on lastSeen
+    // checking for 5 mins...subject to change with discussion
+    if (millis() - record.lastSeen < 300000) {
+        obj["status"] = "Online";
+    } else {
+        obj["status"] = "Offline";
+    }
+
+    obj["timeAgo"] = millis() - record.lastSeen;
+
+    // Convert mac address to string
+    char mac[18];
+    sprintf(mac, "%02X:%02X:%02X:%02X:%02X:%02X", 
+        record.MACAddress[0], 
+        record.MACAddress[1], 
+        record.MACAddress[2], 
+        record.MACAddress[3], 
+        record.MACAddress[4], 
+        record.MACAddress[5]
+    );
+    obj["mac"] = mac;
+
+
+    JsonArray sensors = obj.createNestedArray("sensors");
+    for (int i = 0; i < record.lastPacket.readingCount; i++) {
+        const Reading& r = record.lastPacket.readings[i];
+
+        if (r.type == DOOR_SENSOR || r.type == MOTION_SENSOR || r.type == BATTERY_SENSOR) {
+            JsonObject s = sensors.createNestedObject();
+            if (r.type == BATTERY_SENSOR) {
+                s["type"] = "battery";
+                s["value"] = getBatteryPercentageFromV(r.payload.asFloat);
+            } 
+            else if (r.type == DOOR_SENSOR) {
+                s["type"] = "door";
+                s["value"] = r.payload.asBool ? "Closed" : "Open";
+            } 
+            else if (r.type == MOTION_SENSOR) {
+                s["type"] = "motion";
+                s["value"] = r.payload.asBool;
+            }
+        }
+    }
 }
 
 void nodeRecordToJsonObject(const NodeRecord& record, JsonObject& obj) {

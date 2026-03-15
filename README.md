@@ -1,151 +1,70 @@
-> ATTENTION: If you make changes to the schema in some way please update this when it gets merged, so we have a consistent reference
+# Range Sentinel
+> Security Beyond the Grid
 
-## Data Schema and Persistence
-Data is stored in JSON format to be human readable, easily accessible via the web, and light weight enough for the ESP32 to handle efficiently, utilizing `LittleFS.`
+## Overview
 
-### 1. Core Data Structure
+Range Sentinel is a solution aimed at those who live in areas that may not have a
+strong connection to the Internet, be it from an ISP or through cellular signals.
 
-The system uses a **Tagged Union** pattern to separate what is sent over LoRa and what is on-device storage.
+It is able to monitor doors, gates, and fences at a long range showing live updates
+to help combat nefarious activity.
 
-**A. MeshPacket**
-Tailored for LoRa. Contains only the essential sensor data and dynamically packs bytes based on the `DataType`.
+Range Sentinel beleives in packaging every part of itself in an enclosed system.
+Therefore, an Internet connection is _not required_. Instead, a specialized `viewing node`
+is used to monitor the system with both a screen and through a locally hosted web server.
 
-```cpp
-typedef enum {
-    OTHER               = 0x00, 
-    DOOR_SENSOR         = 0x01, // sends open as bool
-    MOTION_SENSOR       = 0x02, // sends motion as bool
-    BATTERY_SENSOR      = 0x03, // sends voltage as float
-    ASSIGNMENT_ID       = 0x04, // sends nodeID as byte
-    ASSIGNMENT_MAC      = 0x05, // sends MAC as byte  
-    REQUEST_TO_ASSIGN   = 0x06, // sends MAC as byte
-    SENSOR_TYPE_ERROR   = 0xFF
-} DataType;
+> Note: The frequencies emmitted from the wireless LoRa tranceivers may not be 
+legal to broadcast in your country! Consult your country's 
+[frequency plan](https://www.thethingsnetwork.org/docs/lorawan/frequencies-by-country/) if you are unsure. 
+Range Sentinel is **NOT LIABLE** for breaking your country's laws.
 
-// payload holder
-typedef union {
-    bool asBool;
-    float asFloat;
-    uint8_t asByte;
-    MacAddress asMAC;
-} Data;
+## Bill of Materials
+- Each viewing node consists of:
+  - 1 [ESP32 Microsontroller](https://en.wikipedia.org/wiki/ESP32)
+  - 1 [XL1276-P01 Wireless LoRa Transceiver Module](https://www.amazon.com/dp/B0BXDNFZ2B)
+  - 1 [3.7V 3000mAh Rechargable Battery](https://www.amazon.com/dp/B08T6GT7DV?th=1)
+  - 1 [TP4057 1A 3.7V Battery Charging Board](https://www.amazon.com/dp/B0CDWZ9MDC)
+  - 1 [6V DC Solar Panel](https://www.amazon.com/dp/B08THXDWS1)
+  - 1 [0.96 inch SSD1306 Driver I2C OLED Screen](https://www.amazon.com/DIYmall-Serial-128x64-Display-Arduino/dp/B00O2KDQBE?th=1)
 
-// single sensor event
-struct Reading {
-    //uint8_t sensorIndex;      // currently unused; will be used if we have multiple of the same sensors (if used uncomment usage in serialization functions)
-    DataType type;              // format identifier
-    Data payload;               // actual data
-    bool isAlert;
-};
+- Each sensor node consists of:
+  - 1 [ESP32 Microsontroller](https://en.wikipedia.org/wiki/ESP32)
+  - 1 [XL1276-P01 Wireless LoRa Transceiver Module](https://www.amazon.com/dp/B0BXDNFZ2B)
+  - 1 [3.7V 3000mAh Rechargable Battery](https://www.amazon.com/dp/B08T6GT7DV?th=1)
+  - 1 [TP4057 1A 3.7V Battery Charging Board](https://www.amazon.com/dp/B0CDWZ9MDC)
+  - 1 [6V DC Solar Panel](https://www.amazon.com/dp/B08THXDWS1)
+  - 1 [Magnetic Reed Switch](https://www.amazon.com/dp/B0BX2ZRZ8T?th=1)
+  
+> Special boards such as the [LILYGO LoRa32 915Mhz ESP32 Development Board](https://www.amazon.com/dp/B09SHRWVNB?th=1) package most
+of the parts in a single unit. This is the preferred way of running Range Sentinel.
 
-// what is sent over LoRa
-struct MeshPacket {
-    uint32_t messageId;
-    uint8_t readingCount;
-    Reading readings[MAX_SENSORS_PER_PACKET];
-};
-```
+## Building
 
-**B. NodeRecord** Wraps the packet with metadata that is _not_ sent over radio to save bandwidth. Used for Viewing node and JSON web output.
+Range Sentinel is built with [Platform IO](https://platformio.org/).
+You will need to install at least the core CLI tools to build and flash
+the devices.
 
-```cpp
-// metadata not sent over radio (will be stored in viewing node for comparison)
-struct NodeRecord {
-    uint8_t nodeID;
-    MeshPacket lastPacket;
-    char nodeName[20];
-    uint8_t MACAddress[6];
-    unsigned long lastSeen;  // local timestamp
-    bool hasActiveAlert;  // global alert status for the node (live status)
-    bool alertLatched;  // tracks if an alert hasn't been cleared yet
-};
-```
+### Flashing the Viewing Node
 
-### 2. JSON Storage & API Formats
-In addition to the website files, we hold two distinct files in Flash memory:
+Once the viewing node is assembled, it can be flashed using the
+`viewing_node` environment.
 
-`db_backup.json` (Live Status)
-Stores the most recent state of each active node.
-* Updates every 5 minutes (if a new event occurred)
-* Formatted in JSON array of objects:
+`platformio run --target upload --environment viewing_node`
 
-```json
-[
-  {
-    "id": 1,
-    "name": "Front Gate",
-    "ls": 154200,
-    "mId": 42,
-    "alert": false,
-    "latched": false,
-    "mac": "AA:BB:CC:11:22:33",
-    "sensors": [
-      { "type": "door", "val": true, "alert": false },
-      { "type": "batt", "val": 3.95, "alert": false }
-    ]
-  }
-]
-```
+Next, the viewing node needs the littlefs file system uploaded to it.
 
-`history_backup.json` (Event Log)
+`platformio run --target uploadfs --environment viewing_node`
 
-Stores the circular buffer history to show an activity feed.
-* Updates every 5 minutes (if a new event occurred)
-* Formatted in JSON with a metadata header containing the current lcoation of the head and a data array:
+### Flashing Sensor Nodes
 
-```json
-{
-    "head": 3,
-    "data": [
-        { 
-            "id": 1, 
-            "name": "Front Gate", 
-            "ls": 150000,
-            "mId": 40, 
-            "alert": true,
-            "latched": true,
-            "mac": "AA:BB:CC:11:22:33",
-            "sensors": [
-                { "type": "motion", "val": true, "alert": true }
-            ]
-        },
-        { 
-            "id": 2, 
-            "name": "Back Porch", 
-            "ls": 152000,
-            "mId": 12, 
-            "alert": false,
-            "latched": false,
-            "mac": "11:22:33:AA:BB:CC",
-            "sensors": [
-                { "type": "door", "val": false, "alert": false },
-                { "type": "batt", "val": 4.10, "alert": false }
-            ]
-        }
-    ]
-}
-```
+Once assembled, sensor nodes can be flashed with the `sensor_node`
+environment.
 
-### 3. Table for Translation from C++ variable to JSON key:
+`platformio run --target upload --environment sensor_node`
 
-**Meta-Data Fields**
-| C++ Variable | JSON Key | Type | Description |
-| :--- | :--- | :--- | :--- |
-| nodeId | id | int | Unique Node ID | 
-| lastPacket.messageId | mId | int | Message number | 
-| nodeName | name | string | Name (Stored locally) |
-| lastSeen | ls | long | Timestamp since booted in milliseconds |
-| lastPacket.readings[] | sensors | array | List of sensor objects |
-| hasActiveAlert | alert | bool | True if currently in an alert state |
-| alertLatched | latched | bool | True if an alert has been sent but not cleared |
-| MACAddress | mac | string | 6-byte hardware MAC converted to a string |
+## Documentation
 
----
+Documentation is available in the `docs/` folder. Included is various information about
+the layout of structs and webserver information.
 
-**Sensor Fields**
-| C++ Variable | JSON Key | Type | Description | 
-| :--- | :--- | :--- | :--- | 
-| sensorIndex | idx | int | Which sensor on the board | 
-| type | type | string | Enum converted to string ("door", "motion", "batt", "error", "assign_id", "assign_mac", "req_assign", "unknown") | 
-| payload | val | mixed | value (bool, float, or int depending on type) |
-| isAlert | alert | bool | True is this specific reading triggered an alert | 
+Additionally, a `Doxyfile` is included for use with [doxygen](https://www.doxygen.nl/).

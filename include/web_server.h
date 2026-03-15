@@ -24,8 +24,4 @@ void startFileServer(AsyncWebServer *server);
 /// @param server Pointer to the AsyncWebServer instance
 void startBackend(AsyncWebServer *server);
 
-/// @brief ...
-/// @param server ...
-void startAPI(AsyncWebServer *server);
-
 #endif

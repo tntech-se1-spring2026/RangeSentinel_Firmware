@@ -15,35 +15,83 @@
             box-shadow: 0 0 20px red;
             transition: 0.3s ease-in-out;
         }
+        .dropdown-toggle::after {
+            display: none !important;
+        }
     </style>
 </head>
-<body style="background-color: #1d5e66;">
-    <nav class="navbar navbar-expand-lg bg-body-tertiary sticky-top">
+<body style="background-color: #f9f7f2;">
+    <nav class="navbar navbar-expand-lg sticky-top" style="background-color: #f9f7f2; border-bottom: 5px solid #c16a5a;">
         <div class="container-fluid">
             <a class="navbar-brand">
-                <div class="banner">
-                    <h1 class="chosenFont" style="color: #2d2d2d;">Range Sentinel</h1>
+                <div class="banner d-flex align-items-center">
+                    <img class="me-3" height="auto" width="40px" src="favicon.png">
+                    <h1 class="chosenFont" style="color: #2d4739; margin-bottom: 0px;">Range Sentinel</h1>
                 </div>
             </a>
-            <div class="btn-group dropstart" id="action_items"> <!-- button to open notification dropdown -->
-                <button type="button" class="btn btn-link dropdown-toggle" data-bs-toggle="dropdown" data-bs-auto-close="inside" aria-expanded="false">
-                    <img src="img/notifications.svg" style="margin-right: 10px;" alt="notifications">
+            <div>
+                <div class="btn-group dropstart" id="action_items"> <!-- button to open notification dropdown -->
+                    <button type="button" class="btn p-0 border-0 bg-transparent dropdown-toggle::after" data-bs-toggle="dropdown" data-bs-auto-close="inside" aria-expanded="false">
+                        <img src="img/notifications.svg" style="margin-right: 10px;" alt="notifications">
+                    </button>
+                    <span id="notif-count"class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+                    style="display:none ">
+                    0
+                    </span>
+                    <ul class="dropdown-menu" id="notification-dropdown"> <!-- dropdown menu for notifications -->
+                        
+                    </ul>
+                    <img src="img/notifications_unread.svg" style="margin-right: 10px; display: none;" alt="unread notifications"> <!-- icon for unread notifications -->
+                </div>
+                <button type="button" class="btn border-0" data-bs-toggle="modal" data-bs-target="#wifiSettings">
+                    <img src="img/settings.svg" alt="settings">
                 </button>
-                <ul class="dropdown-menu" id="notification-dropdown"> <!-- dropdown menu for notifications -->
-                    
-                </ul>
-                <img src="img/notifications_unread.svg" style="margin-right: 10px; display: none;" alt="unread notifications"> <!-- icon for unread notifications -->
             </div>
         </div>
     </nav>
 
     <div class="container g-3 mt-4"> <!-- remember, container -> row -> col -> card -->
-        <h1 class="chosenFont" style="color: #fafafa;">Device Status</h1>
+        <h1 class="chosenFont" style="color: #2d4739;">Device Status</h1>
         <button class="btn btn-primary mb-3" id="notif-button" style="display: none;">Get Notif</button> <!-- button to test notification retrieval -->
         <div class="row g-3" id="node-cards"></div> <!-- defines the rows for cards -->
     </div>
+
+    <!-- Settings -->
+    <div class="modal fade" id="wifiSettings" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 class="modal-title">Settings</h3>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <h4>Change WiFi Password</h4>
+                    <div class="form-group">
+                        <label class="m-2" for="wifi-password">New Password:</label>
+                        <input class="form-control" type="password" id="wifi-password">
+                        <small class="form-text text-muted" id="wifi-help"></small>
+                    </div>
+                    <div class="mt-3">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-primary" id="wifi-button">Save changes</button>
+                    </div>
+                </div>
+                <div class="modal-footer form-check form-switch justify-content-left">
+                    <input class="form-check-input" type="checkbox" id="dev-switch">
+                    <label class="form-check-label" for="dev-switch">Dev View</label>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script type="module" src="js/main.js"></script>
-    <script>
-    </script>
+
+    <style>
+        .break {
+            background: #a0a0a0;
+            height: 5px;
+            margin: 2em 0 2em 0;
+        }
+    </style>
 </body>
 </html>

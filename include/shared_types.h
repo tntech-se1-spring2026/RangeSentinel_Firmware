@@ -76,9 +76,19 @@ size_t serializePacket(const MeshPacket& packet, uint8_t* buffer, size_t maxLen)
 /// @return True if the data was successfully parsed; False otherwise
 bool deserializePacket(const uint8_t* buffer, size_t len, MeshPacket& packet);
 
-/// @brief Converts a NodeRecord into ArduinoJson object for API or persistent storage
+/// @brief Converts a NodeRecord into a simple JSON for active alerts
 /// @param record The read only source NodeRecord
-/// @param obj The JsonObject to be populated with the record's key-value pairs
+/// @param obj The JsonObject to be populated with alert details
+void nodeRecordToAlertJson(const NodeRecord& record, JsonObject& obj);
+
+/// @brief  @brief Converts a NodeRecord into a simplified JSON object for web UI
+/// @param record The read only source NodeRecord
+/// @param obj The JsonObject to be populated with the web-friendly keys
+void nodeRecordToWebJson(const NodeRecord& record, JsonObject& obj);
+
+/// @brief Converts a NodeRecord into a full ArduinoJson object for persistent storage and backups
+/// @param record The read only source NodeRecord
+/// @param obj The JsonObject to be populated with the complete record data
 void nodeRecordToJsonObject(const NodeRecord& record, JsonObject& obj);
 
 /// @brief Fills in a NodeRecord struct using data from a JSON object (e.g., loading from backup file)
